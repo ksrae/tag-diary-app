@@ -145,8 +145,6 @@ apps/mobile/lib/i18n/messages/*.arb (auto-generated)
 
 ### API
 - `apps/api/src/lib/config.py` - Environment settings
-- `apps/api/src/lib/rate_limit.py` - Rate limiting middleware
-- `apps/api/src/common/models/pagination.py` - Pagination utilities
 
 ### Mobile
 - `apps/mobile/fastlane/Fastfile` - Build and deploy lanes
