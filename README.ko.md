@@ -4,6 +4,41 @@
 
 프로덕션 레디 풀스택 모노레포 템플릿. Next.js 16, FastAPI, Flutter, GCP 인프라를 포함합니다.
 
+```mermaid
+graph TB
+    subgraph Client["클라이언트"]
+        Web[Next.js 16<br/>React 19]
+        Mobile[Flutter 3.32<br/>Riverpod]
+    end
+
+    subgraph GCP["GCP Cloud Run"]
+        API[FastAPI<br/>Python 3.13]
+        Worker[Worker<br/>CloudTasks]
+    end
+
+    subgraph Data["데이터"]
+        DB[(PostgreSQL 16)]
+        Cache[(Redis 7)]
+        Storage[(Cloud Storage)]
+    end
+
+    Web --> API
+    Mobile --> API
+    API --> DB
+    API --> Cache
+    API --> Worker
+    Worker --> DB
+    API --> Storage
+
+    style Web fill:#0070f3,color:#fff
+    style Mobile fill:#02569B,color:#fff
+    style API fill:#009688,color:#fff
+    style Worker fill:#009688,color:#fff
+    style DB fill:#336791,color:#fff
+    style Cache fill:#DC382D,color:#fff
+    style Storage fill:#4285F4,color:#fff
+```
+
 ## 주요 기능
 
 - **모던 스택**: Next.js 16 + React 19, FastAPI, Flutter 3.32, TailwindCSS v4
