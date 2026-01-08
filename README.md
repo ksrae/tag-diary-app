@@ -86,8 +86,8 @@ mise install
 ### 2. Install Dependencies
 
 ```bash
-# Root dependencies (JS/TS)
-pnpm install
+# Web dependencies (JS/TS)
+cd apps/web && pnpm install
 
 # API dependencies
 cd apps/api && uv sync --frozen

@@ -1,5 +1,8 @@
 experimental_monorepo_root = true
 
+[settings]
+experimental = true
+
 [tools]
 node = "24"
 python = "3.13"
@@ -20,7 +23,7 @@ typecheck = { depends = ["//apps/api:typecheck", "//apps/web:typecheck"], descri
 
 [tasks."git:commit-msg"]
 description = "Validate commit message using commitlint"
-run = "pnpm exec commitlint --edit $1"
+run = "pnpm dlx @commitlint/cli@20 --edit $1"
 
 [tasks."git:pre-commit"]
 description = "Run conditional checks for staging files"

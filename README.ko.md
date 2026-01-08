@@ -86,8 +86,8 @@ mise install
 ### 2. 의존성 설치
 
 ```bash
-# 루트 의존성 (JS/TS)
-pnpm install
+# Web 의존성 (JS/TS)
+cd apps/web && pnpm install
 
 # API 의존성
 cd apps/api && uv sync --frozen
