@@ -37,4 +37,14 @@ if echo "$changed" | grep -q "^apps/web/"; then
     echo "[pre-commit] apps/web detected, running lint..."
     mise //apps/web:lint || exit 1
 fi
+
+if echo "$changed" | grep -q "^apps/worker/"; then
+    echo "[pre-commit] apps/worker detected, running lint..."
+    mise //apps/worker:lint || exit 1
+fi
+
+if echo "$changed" | grep -q "^apps/mobile/"; then
+    echo "[pre-commit] apps/mobile detected, running lint..."
+    mise //apps/mobile:lint || exit 1
+fi
 '''
