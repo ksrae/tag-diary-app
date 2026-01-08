@@ -10,6 +10,7 @@ pnpm = "10"
 uv = "latest"
 flutter = "3"
 terraform = "1"
+hadolint = "latest"
 "github:Infisical/cli" = "latest"
 
 [tasks]
@@ -49,5 +50,10 @@ fi
 if echo "$changed" | grep -q "^apps/mobile/"; then
     echo "[pre-commit] apps/mobile detected, running lint..."
     mise //apps/mobile:lint || exit 1
+fi
+
+if echo "$changed" | grep -qE "Dockerfile$"; then
+    echo "[pre-commit] Dockerfile detected, running hadolint..."
+    echo "$changed" | grep -E "Dockerfile$" | xargs hadolint || exit 1
 fi
 '''
