@@ -65,6 +65,8 @@ graph TB
 | **CI/CD** | GitHub Actions, Workload Identity Federation |
 | **Tool Management** | mise (unified Node, Python, Flutter, Terraform versions) |
 
+![Fullstack](./docs/fullstack.jpg)
+
 ## Prerequisites
 
 - [mise](https://mise.jdx.dev/) - Runtime version manager

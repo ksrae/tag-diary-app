@@ -65,6 +65,8 @@ graph TB
 | **CI/CD** | GitHub Actions, Workload Identity Federation |
 | **도구 관리** | mise (Node, Python, Flutter, Terraform 버전 통합) |
 
+![Fullstack](./docs/fullstack.jpg)
+
 ## 사전 요구사항
 
 - [mise](https://mise.jdx.dev/) - 런타임 버전 관리자
