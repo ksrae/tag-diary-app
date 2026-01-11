@@ -387,3 +387,9 @@ MIT
 If this project helped you, please consider buying me a coffee!
 
 <a href="https://www.buymeacoffee.com/firstfluke" target="_blank"><img src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png" alt="Buy Me A Coffee" style="height: 60px !important;width: 217px !important;" ></a>
+
+Or leave a star:
+
+```bash
+gh repo star first-fluke/fullstack-starter
+```

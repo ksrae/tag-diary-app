@@ -387,3 +387,9 @@ MIT
 이 프로젝트가 도움이 되셨다면 커피 한 잔 사주세요!
 
 <a href="https://www.buymeacoffee.com/firstfluke" target="_blank"><img src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png" alt="Buy Me A Coffee" style="height: 60px !important;width: 217px !important;" ></a>
+
+또는 스타를 남겨주세요:
+
+```bash
+gh repo star first-fluke/fullstack-starter
+```
