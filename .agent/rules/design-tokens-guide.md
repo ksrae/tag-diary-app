@@ -38,7 +38,7 @@ Edit `packages/design-tokens/src/tokens.ts`:
 Run the build command to generate platform-specific outputs:
 
 ```bash
-pnpm --filter design-tokens build
+mise //packages/design-tokens:build
 ```
 
 This generates:
@@ -49,7 +49,7 @@ This generates:
 For automatic rebuilds during development:
 
 ```bash
-pnpm --filter design-tokens dev
+mise //packages/design-tokens:dev
 ```
 
 ## Adding New Colors
@@ -81,7 +81,7 @@ const colorMap: Record<string, string> = {
 
 ### Step 3: Build
 ```bash
-pnpm --filter design-tokens build
+mise //packages/design-tokens:build
 ```
 
 ## OKLCH Color Guide
@@ -106,7 +106,7 @@ pnpm --filter design-tokens build
 Run tests to verify color conversion accuracy:
 
 ```bash
-pnpm --filter design-tokens test
+mise //packages/design-tokens:test
 ```
 
 Tests cover:
