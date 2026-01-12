@@ -7,11 +7,11 @@ Production-ready fullstack monorepo template with Next.js 16, FastAPI, Flutter, 
 
 | Layer | Technology |
 |-------|------------|
-| **Frontend** | Next.js 16, React 19, TailwindCSS v4, shadcn/ui, TanStack Query, Jotai |
-| **Backend** | FastAPI, SQLAlchemy (async), PostgreSQL 16, Redis 7 |
-| **Mobile** | Flutter 3.38, Riverpod 3, go_router 17, Firebase Crashlytics, Fastlane |
+| **Frontend** | Next.js 16, React 19, TailwindCSS v4, shadcn/ui, TanStack Query, Jotai, next-intl |
+| **Backend** | FastAPI, SQLAlchemy (async), PostgreSQL 16, Redis 7, Alembic |
+| **Mobile** | Flutter 3.38, Riverpod 3, go_router 17, Firebase Crashlytics, Fastlane, Flutter intl |
 | **Worker** | FastAPI + CloudTasks/PubSub |
-| **Infrastructure** | Terraform, GCP (Cloud Run, Cloud SQL, Cloud Storage, CDN) |
+| **Infrastructure** | Terraform, GCP (Cloud Run, Cloud SQL, Memorystore, GCS, Cloud Tasks, Pub/Sub, CDN) |
 | **CI/CD** | GitHub Actions, Workload Identity Federation |
 | **Tool Management** | mise (unified Node 24, Python 3.13, Flutter 3, pnpm 10, uv, Terraform 1) |
 
@@ -19,6 +19,7 @@ Production-ready fullstack monorepo template with Next.js 16, FastAPI, Flutter, 
 - Type Safety: TypeScript, Pydantic, Dart
 - Authentication: better-auth OAuth (Google, GitHub, Facebook)
 - Internationalization: next-intl (web), Flutter ARB (mobile), shared i18n package
+- Design Tokens: OKLCH color space, shared tokens for web (TailwindCSS v4) and mobile (Material3)
 - Auto-generated API Clients: Orval (web), swagger_parser (mobile)
 - Infrastructure as Code: Terraform + GCP
 - CI/CD: GitHub Actions + Workload Identity Federation (keyless deployment)
