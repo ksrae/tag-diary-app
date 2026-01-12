@@ -5,14 +5,19 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 part 'router.g.dart';
 
 @riverpod
-GoRouter router(RouterRef ref) {
+/// The main router for the application.
+GoRouter router(Ref ref) {
   return GoRouter(
     initialLocation: '/',
     routes: [GoRoute(path: '/', builder: (context, state) => const HomePage())],
   );
 }
 
+/// {@template home_page}
+/// The home page of the application.
+/// {@endtemplate}
 class HomePage extends StatelessWidget {
+  /// {@macro home_page}
   const HomePage({super.key});
 
   @override

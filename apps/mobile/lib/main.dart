@@ -7,10 +7,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:forui/forui.dart';
-
-import 'core/router/router.dart';
-import 'core/theme/app_theme.dart';
-import 'firebase_options.dart';
+import 'package:mobile/core/router/router.dart';
+import 'package:mobile/core/theme/app_theme.dart';
+import 'package:mobile/firebase_options.dart';
 
 Future<void> main() async {
   await runZonedGuarded(
@@ -22,11 +21,15 @@ Future<void> main() async {
       );
 
       FlutterError.onError = (errorDetails) {
-        FirebaseCrashlytics.instance.recordFlutterFatalError(errorDetails);
+        unawaited(
+          FirebaseCrashlytics.instance.recordFlutterFatalError(errorDetails),
+        );
       };
 
       PlatformDispatcher.instance.onError = (error, stack) {
-        FirebaseCrashlytics.instance.recordError(error, stack, fatal: true);
+        unawaited(
+          FirebaseCrashlytics.instance.recordError(error, stack, fatal: true),
+        );
         return true;
       };
 
@@ -39,12 +42,18 @@ Future<void> main() async {
       runApp(const ProviderScope(child: MyApp()));
     },
     (error, stack) {
-      FirebaseCrashlytics.instance.recordError(error, stack, fatal: true);
+      unawaited(
+        FirebaseCrashlytics.instance.recordError(error, stack, fatal: true),
+      );
     },
   );
 }
 
+/// {@template my_app}
+/// The root widget of the application.
+/// {@endtemplate}
 class MyApp extends ConsumerWidget {
+  /// {@macro my_app}
   const MyApp({super.key});
 
   @override
@@ -60,7 +69,6 @@ class MyApp extends ConsumerWidget {
         title: 'Fullstack Starter',
         theme: AppTheme.light,
         darkTheme: AppTheme.dark,
-        themeMode: ThemeMode.system,
         routerConfig: router,
         localizationsDelegates: const [
           GlobalMaterialLocalizations.delegate,

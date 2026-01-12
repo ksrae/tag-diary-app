@@ -1,8 +1,10 @@
 import 'package:dio/dio.dart';
 
+/// {@template api_client}
+/// A client for making network requests.
+/// {@endtemplate}
 class ApiClient {
-  final Dio _dio;
-
+  /// {@macro api_client}
   ApiClient({String? baseUrl})
     : _dio = Dio(
         BaseOptions(
@@ -12,5 +14,8 @@ class ApiClient {
         ),
       );
 
+  final Dio _dio;
+
+  /// The underlying [Dio] instance.
   Dio get dio => _dio;
 }
