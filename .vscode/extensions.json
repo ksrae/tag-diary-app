@@ -7,6 +7,7 @@
     "exiasr.hadolint",
     "google.arb-editor",
     "hashicorp.terraform",
-    "hverlin.mise-vscode"
+    "hverlin.mise-vscode",
+    "streetsidesoftware.code-spell-checker"
   ]
 }
