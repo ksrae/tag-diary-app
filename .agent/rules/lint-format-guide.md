@@ -1,3 +1,8 @@
+---
+trigger: always_on
+description: when working for linting and formatting.
+---
+
 # Lint & Format Guide
 
 ## Overview

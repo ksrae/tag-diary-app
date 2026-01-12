@@ -1,3 +1,8 @@
+---
+trigger: always_on
+description: when working for testing or coverage.
+---
+
 # Test Guide
 
 ## Overview

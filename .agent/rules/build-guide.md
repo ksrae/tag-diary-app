@@ -1,3 +1,8 @@
+---
+trigger: model_decision
+description: when working for building, running, or deploying the project
+---
+
 # Build Guide
 
 ## Quick Start
