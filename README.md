@@ -20,7 +20,7 @@ graph TB
     end
 
     subgraph GCP["GCP Cloud Run"]
-        API[FastAPI<br/>Python 3.13]
+        API[FastAPI<br/>Python 3.12]
         Worker[Worker<br/>CloudTasks]
     end
 
@@ -89,7 +89,7 @@ graph TB
 # Install mise (if not installed)
 curl https://mise.run | sh
 
-# Install all runtimes (Node 24, Python 3.13, Flutter 3, pnpm 10, uv, Terraform)
+# Install all runtimes (Node 24, Python 3.12, Flutter 3, pnpm 10, uv, Terraform)
 mise install
 ```
 

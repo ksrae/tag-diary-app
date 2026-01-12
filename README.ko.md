@@ -20,7 +20,7 @@ graph TB
     end
 
     subgraph GCP["GCP Cloud Run"]
-        API[FastAPI<br/>Python 3.13]
+        API[FastAPI<br/>Python 3.12]
         Worker[Worker<br/>CloudTasks]
     end
 
@@ -89,7 +89,7 @@ graph TB
 # mise 설치 (미설치 시)
 curl https://mise.run | sh
 
-# 모든 런타임 일괄 설치 (Node 24, Python 3.13, Flutter 3, pnpm 10, uv, Terraform)
+# 모든 런타임 일괄 설치 (Node 24, Python 3.12, Flutter 3, pnpm 10, uv, Terraform)
 mise install
 ```
 

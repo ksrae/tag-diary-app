@@ -98,7 +98,7 @@ jobs:
           version: latest
 
       - name: Set up Python
-        run: uv python install 3.13
+        run: uv python install 3.12
 
       - uses: reviewdog/action-setup@v1
 

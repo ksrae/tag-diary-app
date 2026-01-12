@@ -13,7 +13,7 @@ Production-ready fullstack monorepo template with Next.js 16, FastAPI, Flutter, 
 | **Worker** | FastAPI + CloudTasks/PubSub |
 | **Infrastructure** | Terraform, GCP (Cloud Run, Cloud SQL, Memorystore, GCS, Cloud Tasks, Pub/Sub, CDN) |
 | **CI/CD** | GitHub Actions, Workload Identity Federation |
-| **Tool Management** | mise (unified Node 24, Python 3.13, Flutter 3, pnpm 10, uv, Terraform 1) |
+| **Tool Management** | mise (unified Node 24, Python 3.12, Flutter 3, pnpm 10, uv, Terraform 1) |
 
 ## Key Features
 - Type Safety: TypeScript, Pydantic, Dart
@@ -30,9 +30,9 @@ Production-ready fullstack monorepo template with Next.js 16, FastAPI, Flutter, 
 ```
 fullstack-starter/
 ├── apps/
-│   ├── api/           # FastAPI backend (Python 3.13, uv)
+│   ├── api/           # FastAPI backend (Python 3.12, uv)
 │   ├── web/           # Next.js 16 frontend (Node 24, pnpm)
-│   ├── worker/        # Background worker (Python 3.13, uv)
+│   ├── worker/        # Background worker (Python 3.12, uv)
 │   ├── mobile/        # Flutter mobile app (Flutter 3.38)
 │   └── infra/         # Terraform infrastructure
 ├── packages/

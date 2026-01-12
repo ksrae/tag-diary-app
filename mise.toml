@@ -5,7 +5,7 @@ experimental = true
 
 [tools]
 node = "24"
-python = "3.13"
+python = "3.12"
 pnpm = "10"
 uv = "latest"
 flutter = "3"
