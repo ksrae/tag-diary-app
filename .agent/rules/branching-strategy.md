@@ -17,6 +17,7 @@ GitFlow-inspired branching strategy for this project. Solo development omits the
 | `feature/*` | New features | No |
 | `fix/*` | Bug fixes | No |
 | `hotfix/*` | Urgent production fixes | No |
+| `release/*` | Release preparation | Yes |
 
 ## Branch Naming Rules
 
@@ -25,6 +26,12 @@ GitFlow-inspired branching strategy for this project. Solo development omits the
 
 - Fixes: `fix/<descriptive-name>`
   - Examples: `fix/login-error`, `fix/memory-leak`
+
+- Hotfixes: `hotfix/<descriptive-name>`
+  - Examples: `hotfix/security-patch`, `hotfix/critical-bug`
+
+- Releases: `release/<version>`
+  - Examples: `release/v1.0.0`, `release/v2.1.0`
 
 ## Workflow
 
@@ -65,6 +72,39 @@ git merge hotfix/urgent-fix-description
 
 # 3. Delete hotfix branch
 git branch -d hotfix/urgent-fix-description
+```
+
+### Creating Release Branch
+
+**Note:** Release branch is optional. For most cases, merge `develop` directly to `main` with a tag.
+
+When to use release branches:
+- Finalizing release features
+- Preparing for production deployment
+- Testing release candidate before deployment
+
+```bash
+# From develop (team only)
+git checkout develop
+git pull origin develop
+git checkout -b release/v1.0.0
+
+# Bump version, finalize release notes, run tests
+# ...
+
+# Merge release to main and tag
+git checkout main
+git merge release/v1.0.0
+git tag -a v1.0.0 -m "Release version 1.0.0"
+git push origin main
+git push origin v1.0.0
+
+# Back-merge to develop
+git checkout develop
+git merge release/v1.0.0
+
+# Delete release branch
+git branch -d release/v1.0.0
 ```
 
 ### Creating Fix Branch
@@ -153,6 +193,13 @@ gitGraph
     merge hotfix/urgent-fix tag: "v1.0.2"
     checkout develop
     merge hotfix/urgent-fix
+    branch release/v1.1.0
+    checkout release/v1.1.0
+    commit
+    checkout main
+    merge release/v1.1.0 tag: "v1.1.0"
+    checkout develop
+    merge release/v1.1.0
 ```
 
 ## Rebase Guidelines
@@ -238,8 +285,11 @@ git rebase --abort
 8. **Hotfix** branches must be created from `main`, not `develop`
 9. **Hotfix** merges must be tagged immediately (v1.0.2, v1.0.3, etc.)
 10. **Hotfix** must be back-merged to `develop` (if using team workflow)
-11. **Rebase** only feature/fix/hotfix branches, never main/develop
-12. **Force push** only with `--force-with-lease` and only on feature branches
+11. **Release** branches must be created from `develop` (team workflow only)
+12. **Release** merges to `main` must be tagged with new version
+13. **Release** must be back-merged to `develop` after `main` merge
+14. **Rebase** only feature/fix/hotfix/release branches, never main/develop
+15. **Force push** only with `--force-with-lease` and only on feature branches
 
 ## Release Process
 
@@ -251,12 +301,38 @@ git push origin v1.0.0
 ```
 
 ### Team Development
+
+#### Option 1: Direct Merge (Recommended)
 ```bash
 git checkout develop
 git checkout main
 git merge develop
 git tag -a v1.0.0 -m "Release version 1.0.0"
 git push origin v1.0.0
+```
+
+#### Option 2: Release Branch (Formal Process)
+```bash
+# Create release branch from develop
+git checkout develop
+git checkout -b release/v1.0.0
+
+# Finalize release (bump version, update changelog, run tests)
+# ...
+
+# Merge release to main and tag
+git checkout main
+git merge release/v1.0.0
+git tag -a v1.0.0 -m "Release version 1.0.0"
+git push origin main
+git push origin v1.0.0
+
+# Back-merge to develop
+git checkout develop
+git merge release/v1.0.0
+
+# Delete release branch
+git branch -d release/v1.0.0
 ```
 
 ## Conflict Resolution
