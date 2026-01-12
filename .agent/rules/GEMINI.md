@@ -15,7 +15,7 @@ Modern fullstack monorepo template with Next.js 16, FastAPI, Flutter, and GCP in
 - **Testing**: Vitest
 
 ### Backend (apps/api)
-- **Framework**: FastAPI with Python 3.13
+- **Framework**: FastAPI with Python 3.12
 - **Database**: PostgreSQL 16 with SQLAlchemy async
 - **Cache**: Redis 7
 - **Migrations**: Alembic
