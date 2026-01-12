@@ -49,6 +49,10 @@ Modern fullstack monorepo template with Next.js 16, FastAPI, Flutter, and GCP in
 - **i18n**: Single source of truth for translations (ARB format)
   - Auto-generates JSON for web (next-intl)
   - Auto-generates ARB for mobile (Flutter intl)
+- **design-tokens**: Single source of truth for design tokens (OKLCH color space)
+  - Edit at: `packages/design-tokens/src/tokens.ts`
+  - Auto-generates CSS variables for web (TailwindCSS v4)
+  - Auto-generates Flutter Theme for mobile (Material3)
 
 ## Project Structure
 ```
@@ -71,8 +75,11 @@ fullstack-starter/
 │   │   └── fastlane/           # CI/CD automation
 │   └── infra/        # Terraform infrastructure
 ├── packages/
-│   └── i18n/         # Shared i18n (source of truth)
-│       └── src/      # ARB source files
+│   ├── i18n/         # Shared i18n (source of truth)
+│   │   └── src/      # ARB source files
+│   ├── design-tokens/ # Shared design tokens (source of truth)
+│   │   └── src/      # tokens.ts (OKLCH color definitions)
+│   └── shared/       # Shared utilities
 ├── .agent/rules/     # AI agent guidelines
 └── .github/workflows/ # CI/CD pipelines
 ```
@@ -92,12 +99,14 @@ fullstack-starter/
 - Server Components by default
 - Client Components only when needed (interactivity, hooks)
 - Colocation of components with routes
+- Styling: TailwindCSS v4 with design-tokens (OKLCH color space)
 - Proxy configuration in `src/proxy.ts` (security headers, i18n)
 
 ### Mobile Layer
 - Feature-first architecture
 - Riverpod for DI and state
 - Freezed for immutable models
+- Theme: Material3 with design-tokens (generated from OKLCH)
 - Firebase Crashlytics for crash reporting
 - Fastlane for build automation
 
@@ -107,6 +116,14 @@ packages/i18n/src/*.arb (edit here)
         ↓ mise i18n:build
 apps/web/src/config/messages/*.json (auto-generated)
 apps/mobile/lib/i18n/messages/*.arb (auto-generated)
+```
+
+### Design Tokens Flow
+```
+packages/design-tokens/src/tokens.ts (edit here)
+        ↓ mise //packages/design-tokens:build
+apps/web/src/app/[locale]/tokens.css (CSS variables - auto-generated)
+apps/mobile/lib/core/theme/generated_theme.dart (Flutter Theme - auto-generated)
 ```
 
 ## Code Conventions
@@ -142,6 +159,9 @@ apps/mobile/lib/i18n/messages/*.arb (auto-generated)
 - `biome.json` - JS/TS linting and formatting
 - `apps/api/ruff.toml` - Python linting
 - `apps/mobile/analysis_options.yaml` - Dart linting (very_good_analysis)
+
+### Design Tokens
+- `packages/design-tokens/src/tokens.ts` - OKLCH color definitions (source of truth)
 
 ### API
 - `apps/api/src/lib/config.py` - Environment settings
