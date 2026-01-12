@@ -2,8 +2,11 @@
 
 [![GitHub Repo stars](https://img.shields.io/github/stars/first-fluke/fullstack-starter?logo=githubsponsors)](https://github.com/first-fluke/fullstack-starter/stargazers)
 [![Last Commit](https://img.shields.io/github/last-commit/first-fluke/fullstack-starter/main?label=last%20updated&logo=github&logoColor=white)](https://github.com/first-fluke/fullstack-starter)
+[![Version](https://img.shields.io/github/v/release/first-fluke/fullstack-starter?label=version)](https://github.com/first-fluke/fullstack-starter/releases)
 
 [English](./README.md) | 한국어
+
+> 템플릿 버전은 [Release Please](https://github.com/googleapis/release-please)로 관리됩니다 — [CHANGELOG.md](./CHANGELOG.md)에서 릴리즈 히스토리를 확인하세요.
 
 실무에 바로 적용 가능한 풀스택 모노레포 템플릿입니다. Next.js 16, FastAPI, Flutter, GCP 인프라가 통합되어 있습니다.
 

@@ -2,8 +2,11 @@
 
 [![GitHub Repo stars](https://img.shields.io/github/stars/first-fluke/fullstack-starter?logo=githubsponsors)](https://github.com/first-fluke/fullstack-starter/stargazers)
 [![Last Commit](https://img.shields.io/github/last-commit/first-fluke/fullstack-starter/main?label=last%20updated&logo=github&logoColor=white)](https://github.com/first-fluke/fullstack-starter)
+[![Version](https://img.shields.io/github/v/release/first-fluke/fullstack-starter?label=version)](https://github.com/first-fluke/fullstack-starter/releases)
 
 English | [한국어](./README.ko.md)
+
+> Template versioning via [Release Please](https://github.com/googleapis/release-please) — see [CHANGELOG.md](./CHANGELOG.md) for release history.
 
 Production-ready fullstack monorepo template with Next.js 16, FastAPI, Flutter, and GCP infrastructure.
 
