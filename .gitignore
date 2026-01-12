@@ -19,6 +19,7 @@ out/
 .vscode/*
 !.vscode/extensions.json
 !.vscode/settings.json
+!.vscode/cspell.json
 *.swp
 *.swo
 
