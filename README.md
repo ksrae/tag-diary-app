@@ -94,7 +94,7 @@ Or use GitHub:
 ### Prerequisites
 
 - [mise](https://mise.jdx.dev/) - Runtime version manager
-- [Docker](https://www.docker.com/) - Local infrastructure
+- [Docker](https://www.docker.com/) or [Podman Desktop](https://podman-desktop.io/downloads) - Local infrastructure
 - [Terraform](https://www.terraform.io/) - Cloud infrastructure (optional)
 
 ### 1. Install Runtimes
@@ -110,21 +110,8 @@ mise install
 ### 2. Install Dependencies
 
 ```bash
-# Install all dependencies at once (recommended)
+# Install all dependencies at once
 mise run install
-
-# Or install individually
-# Web dependencies (JS/TS)
-cd apps/web && pnpm install
-
-# API dependencies
-cd apps/api && uv sync --frozen
-
-# Worker dependencies
-cd apps/worker && uv sync --frozen
-
-# Mobile dependencies
-cd apps/mobile && flutter pub get
 ```
 
 ### 3. Start Local Infrastructure
@@ -195,7 +182,7 @@ mise tasks --all
 | `mise test` | Test all apps |
 | `mise typecheck` | Type check |
 | `mise i18n:build` | Build i18n files |
-| `mise design-token:build` | Build design tokens |
+| `mise tokens:build` | Build design tokens |
 | `mise gen:api` | Generate OpenAPI schema and API clients |
 | `mise infra:up` | Start local infrastructure |
 | `mise infra:down` | Stop local infrastructure |
@@ -329,7 +316,7 @@ mise i18n:build
 packages/design-tokens/src/tokens.ts
 
 # Build and distribute
-mise design-token:build
+mise tokens:build
 # Generated files:
 # - apps/web/src/app/[locale]/tokens.css (CSS variables)
 # - apps/mobile/lib/core/theme/generated_theme.dart (Flutter Theme)

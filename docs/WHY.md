@@ -79,6 +79,13 @@ This document explains the reasoning behind each technology choice in this fulls
 - **Persistence options**: RDB snapshots or AOF for durability
 - **Cluster support**: Horizontal scaling when needed
 
+### MinIO
+
+- **S3 Compatible**: Drop-in replacement for AWS S3 API, seamless migration to production Cloud Storage
+- **Local development**: Same API as production environment, no vendor lock-in during development
+- **Self-hosted**: Runs locally with Docker/Podman, no external dependencies or service accounts required
+- **Open source**: Enterprise-grade object storage with full control over data
+
 ## Mobile
 
 ### Flutter 3.38
