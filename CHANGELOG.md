@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.1.0](https://github.com/first-fluke/fullstack-starter/compare/v1.0.1...v1.1.0) (2026-01-13)
+
+
+### Features
+
+* **web:** add @reactuses/core and reorganize atoms ([cf5e4cb](https://github.com/first-fluke/fullstack-starter/commit/cf5e4cb8726213259b3ed2244f622d532819801f))
+
 ## [1.0.1](https://github.com/first-fluke/fullstack-starter/compare/v1.0.0...v1.0.1) (2026-01-12)
 
 
