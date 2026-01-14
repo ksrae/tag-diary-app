@@ -1,5 +1,19 @@
 # Changelog
 
+## [1.2.0](https://github.com/first-fluke/fullstack-starter/compare/v1.1.0...v1.2.0) (2026-01-14)
+
+
+### Features
+
+* **web:** add T3 Env schema ([78adbfe](https://github.com/first-fluke/fullstack-starter/commit/78adbfef969cb2daae5af1f74de804645b9ef0bf))
+
+
+### Bug Fixes
+
+* **web:** handle optional params in not-found page ([4839c21](https://github.com/first-fluke/fullstack-starter/commit/4839c21e2d916c210741b402d54ec5491dee97df))
+* **web:** migrate client env variables to T3 Env ([b740527](https://github.com/first-fluke/fullstack-starter/commit/b7405270a0fefe95b94acaf5555758eab96b7bd6))
+* **web:** migrate server env variables to T3 Env ([43960cb](https://github.com/first-fluke/fullstack-starter/commit/43960cb284777f7e5ca69f941c2778896c17fb52))
+
 ## [1.1.0](https://github.com/first-fluke/fullstack-starter/compare/v1.0.1...v1.1.0) (2026-01-13)
 
 
