@@ -6,16 +6,16 @@ import { Provider as JotaiProvider } from "jotai";
 import dynamic from "next/dynamic";
 import { type AbstractIntlMessages, NextIntlClientProvider } from "next-intl";
 import type { ReactNode } from "react";
+import { env } from "@/config/env";
 import { getQueryClient } from "@/lib/get-query-client";
 
-const ENABLE_DEVTOOLS = process.env.NEXT_PUBLIC_ENABLE_DEVTOOLS === "true";
-
-const TanStackDevTools = ENABLE_DEVTOOLS
-  ? dynamic(
-      () => import("@/components/devtools/tanstack-devtools").then((mod) => mod.TanStackDevTools),
-      { ssr: false }
-    )
-  : () => null;
+const TanStackDevTools =
+  env.NEXT_PUBLIC_ENABLE_DEVTOOLS === "true"
+    ? dynamic(
+        () => import("@/components/devtools/tanstack-devtools").then((mod) => mod.TanStackDevTools),
+        { ssr: false }
+      )
+    : () => null;
 
 interface ProvidersProps {
   children: ReactNode;
