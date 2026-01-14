@@ -1,9 +1,11 @@
-import createNextIntlPlugin from "next-intl/plugin";
 import type { NextConfig } from "next";
+
+import createNextIntlPlugin from "next-intl/plugin";
+import { env } from "./src/config/env";
 
 const withNextIntl = createNextIntlPlugin("./src/lib/i18n/request.ts");
 
-const isDev = process.env.NEXT_PUBLIC_ENABLE_DEVTOOLS === "true";
+const isDev = env.NEXT_PUBLIC_ENABLE_DEVTOOLS === "true";
 
 const securityHeaders = [
   {
@@ -72,6 +74,7 @@ const nextConfig: NextConfig = {
   experimental: {
     typedEnv: true,
   },
+  serverExternalPackages: ["esbuild-wasm"],
   async headers() {
     return [
       {
