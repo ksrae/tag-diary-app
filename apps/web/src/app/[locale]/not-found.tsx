@@ -2,11 +2,11 @@ import type { Locale } from "next-intl";
 import { setRequestLocale } from "next-intl/server";
 
 interface NotFoundPageProps {
-  params: Promise<{ locale: string }>;
+  params?: Promise<{ locale: string }>;
 }
 
 export default async function NotFoundPage({ params }: NotFoundPageProps) {
-  const { locale } = await params;
+  const locale = (await params)?.locale || "en";
   setRequestLocale(locale as Locale);
 
   return (
