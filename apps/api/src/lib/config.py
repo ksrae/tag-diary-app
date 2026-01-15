@@ -29,7 +29,7 @@ class Settings(BaseSettings):
     BETTER_AUTH_URL: str = "http://localhost:3000"
 
     # JWT/JWE (stateless authentication)
-    JWT_SECRET: str = "your-super-secret-jwt-key-change-in-production"
+    JWT_SECRET: str = "your-super-secret-jwt-key-change-in-production"  # noqa: S105
     JWE_SECRET_KEY: str = "your-super-secret-jwe-encryption-key-change-in-production"  # noqa: S105
 
     # Redis (optional)

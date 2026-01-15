@@ -5,8 +5,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.lib.auth import (
     CurrentUser,
-    OptionalUser,
     CurrentUserInfo,
+    OptionalUser,
     get_current_user,
     get_optional_user,
 )
@@ -18,9 +18,9 @@ DBSession = Annotated[AsyncSession, Depends(get_db)]
 # Re-export auth dependencies for convenience
 __all__ = [
     "CurrentUser",
+    "CurrentUserInfo",
     "DBSession",
     "OptionalUser",
-    "CurrentUserInfo",
     "get_current_user",
     "get_optional_user",
 ]

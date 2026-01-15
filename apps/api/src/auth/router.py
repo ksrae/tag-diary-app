@@ -1,13 +1,11 @@
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy.ext.asyncio import AsyncSession
+from fastapi import APIRouter, HTTPException, status
 
 from src.lib.auth import (
     OAuthLoginRequest,
     RefreshTokenRequest,
     TokenResponse,
-    CurrentUserInfo,
     decode_token,
     verify_oauth_token,
 )
@@ -63,7 +61,7 @@ async def refresh_token(
     """Refresh access token using refresh token."""
     payload = decode_token(request.refresh_token)
 
-    if payload.token_type != "refresh":
+    if payload.token_type != "refresh":  # noqa: S105
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid token type",
