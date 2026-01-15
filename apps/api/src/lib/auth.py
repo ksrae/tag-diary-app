@@ -27,7 +27,7 @@ class TokenResponse(BaseModel):
 
     access_token: str
     refresh_token: str
-    token_type: str = "bearer"
+    token_type: str = "bearer"  # noqa: S105
 
 
 class OAuthLoginRequest(BaseModel):
@@ -127,13 +127,13 @@ def decode_token(token: str) -> TokenPayload:
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid token",
             headers={"WWW-Authenticate": "Bearer"},
-        )
+        ) from None
     except Exception:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid token",
             headers={"WWW-Authenticate": "Bearer"},
-        )
+        ) from None
 
 
 async def verify_google_token(access_token: str) -> OAuthUserInfo:
@@ -232,7 +232,7 @@ async def get_current_user(request: Request) -> CurrentUserInfo:
     token = auth_header.replace("Bearer ", "")
     payload = decode_token(token)
 
-    if payload.token_type != "access":
+    if payload.token_type != "access":  # noqa: S105
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid token type",

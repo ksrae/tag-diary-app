@@ -1,8 +1,8 @@
-from datetime import datetime
 import uuid as uuid_lib
+from datetime import datetime
 
 from pydantic import BaseModel
-from sqlalchemy import DateTime, func, String, text
+from sqlalchemy import DateTime, String, func, text
 from sqlalchemy.orm import Mapped, mapped_column
 
 from src.lib.database import Base
