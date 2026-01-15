@@ -233,5 +233,7 @@ async def readiness_check() -> dict[str, str]:
 
 
 # Register routers here
-# from src.users.router import router as users_router
-# app.include_router(users_router, prefix="/api")
+from src.auth.router import router as auth_router
+from src.users.model import User
+
+app.include_router(auth_router, prefix="/api/auth", tags=["authentication"])

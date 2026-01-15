@@ -1,23 +1,128 @@
 import axios from "axios";
 import { env } from "@/config/env";
 
+const STORAGE_PREFIX = "fullstack_";
+
+const STORAGE_KEYS = {
+  ACCESS_TOKEN: `${STORAGE_PREFIX}access_token`,
+  REFRESH_TOKEN: `${STORAGE_PREFIX}refresh_token`,
+};
+
+function getAccessToken() {
+  if (typeof window === "undefined") return null;
+  return localStorage.getItem(STORAGE_KEYS.ACCESS_TOKEN);
+}
+
+function getRefreshToken() {
+  if (typeof window === "undefined") return null;
+  return localStorage.getItem(STORAGE_KEYS.REFRESH_TOKEN);
+}
+
+function setAccessToken(token: string) {
+  if (typeof window !== "undefined") {
+    localStorage.setItem(STORAGE_KEYS.ACCESS_TOKEN, token);
+  }
+}
+
+function setRefreshToken(token: string) {
+  if (typeof window !== "undefined") {
+    localStorage.setItem(STORAGE_KEYS.REFRESH_TOKEN, token);
+  }
+}
+
+function clearTokens() {
+  if (typeof window !== "undefined") {
+    localStorage.removeItem(STORAGE_KEYS.ACCESS_TOKEN);
+    localStorage.removeItem(STORAGE_KEYS.REFRESH_TOKEN);
+  }
+}
+
 export const apiClient = axios.create({
   baseURL: env.NEXT_PUBLIC_API_URL,
   timeout: 30000,
   headers: {
     "Content-Type": "application/json",
   },
-  withCredentials: true,
+});
+
+let isRefreshing = false;
+let refreshSubscribers: ((token: string) => void)[] = [];
+
+function subscribeTokenRefresh(cb: (token: string) => void) {
+  refreshSubscribers.push(cb);
+}
+
+function onRefreshed(token: string) {
+  refreshSubscribers.forEach((cb: (token: string) => void) => {
+    cb(token);
+  });
+  refreshSubscribers = [];
+}
+
+apiClient.interceptors.request.use((config) => {
+  const token = getAccessToken();
+  if (token && config.headers) {
+    config.headers.Authorization = `Bearer ${token}`;
+  }
+  return config;
 });
 
 apiClient.interceptors.response.use(
   (response) => response,
-  (error) => {
-    if (error.response?.status === 401) {
-      if (typeof window !== "undefined") {
-        window.location.href = "/login";
+  async (error) => {
+    const originalRequest = error.config;
+
+    if (error.response?.status === 401 && originalRequest && !originalRequest._retry) {
+      const refreshToken = getRefreshToken();
+
+      if (!refreshToken) {
+        clearTokens();
+        if (typeof window !== "undefined") {
+          window.location.href = "/login";
+        }
+        return Promise.reject(error);
+      }
+
+      if (isRefreshing) {
+        return new Promise((resolve) => {
+          subscribeTokenRefresh((token: string) => {
+            if (originalRequest.headers) {
+              originalRequest.headers.Authorization = `Bearer ${token}`;
+            }
+            resolve(apiClient(originalRequest));
+          });
+        });
+      }
+
+      isRefreshing = true;
+
+      try {
+        const response = await axios.post(`${env.NEXT_PUBLIC_API_URL}/api/auth/refresh`, {
+          refresh_token: refreshToken,
+        });
+
+        const newAccessToken = response.data.access_token;
+        setAccessToken(newAccessToken);
+        onRefreshed(newAccessToken);
+        isRefreshing = false;
+
+        if (originalRequest.headers) {
+          originalRequest.headers.Authorization = `Bearer ${newAccessToken}`;
+        }
+
+        return apiClient(originalRequest);
+      } catch (refreshError) {
+        isRefreshing = false;
+        clearTokens();
+        if (typeof window !== "undefined") {
+          window.location.href = "/login";
+        }
+        return Promise.reject(refreshError);
       }
     }
+
     return Promise.reject(error);
   }
 );
+
+export { getAccessToken, getRefreshToken, setAccessToken, setRefreshToken, clearTokens };

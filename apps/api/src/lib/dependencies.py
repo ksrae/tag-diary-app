@@ -5,15 +5,10 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.lib.auth import (
     CurrentUser,
-    OptionalSession,
     OptionalUser,
-    RequiredSession,
-    SessionResponse,
-    SessionUser,
+    CurrentUserInfo,
     get_current_user,
-    get_optional_session,
     get_optional_user,
-    get_required_session,
 )
 from src.lib.database import get_db
 
@@ -24,13 +19,8 @@ DBSession = Annotated[AsyncSession, Depends(get_db)]
 __all__ = [
     "CurrentUser",
     "DBSession",
-    "OptionalSession",
     "OptionalUser",
-    "RequiredSession",
-    "SessionResponse",
-    "SessionUser",
+    "CurrentUserInfo",
     "get_current_user",
-    "get_optional_session",
     "get_optional_user",
-    "get_required_session",
 ]

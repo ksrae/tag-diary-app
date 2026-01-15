@@ -6,7 +6,14 @@ import { Provider as JotaiProvider } from "jotai";
 import dynamic from "next/dynamic";
 import { type AbstractIntlMessages, NextIntlClientProvider } from "next-intl";
 import type { ReactNode } from "react";
+import { useEffect } from "react";
 import { env } from "@/config/env";
+import {
+  clearBackendTokens,
+  exchangeOAuthForBackendJwt,
+  hasBackendAccessToken,
+  useSession,
+} from "@/lib/auth-client";
 import { getQueryClient } from "@/lib/get-query-client";
 
 const TanStackDevTools =
@@ -23,6 +30,27 @@ interface ProvidersProps {
   messages: AbstractIntlMessages;
 }
 
+function BackendJwtBridge() {
+  const { data: session, isPending } = useSession();
+
+  useEffect(() => {
+    if (isPending) return;
+
+    if (!session?.user) {
+      if (hasBackendAccessToken()) {
+        clearBackendTokens();
+      }
+      return;
+    }
+
+    if (hasBackendAccessToken()) return;
+
+    exchangeOAuthForBackendJwt().catch(() => {});
+  }, [isPending, session?.user?.id]);
+
+  return null;
+}
+
 export function Providers({ children, locale, messages }: ProvidersProps) {
   const queryClient = getQueryClient();
 
@@ -30,6 +58,7 @@ export function Providers({ children, locale, messages }: ProvidersProps) {
     <SerwistProvider swUrl="/serwist/sw.js">
       <QueryClientProvider client={queryClient}>
         <JotaiProvider>
+          <BackendJwtBridge />
           <NextIntlClientProvider locale={locale} messages={messages}>
             {children}
           </NextIntlClientProvider>
