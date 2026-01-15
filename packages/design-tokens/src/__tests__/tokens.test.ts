@@ -1,5 +1,4 @@
 import { describe, expect, it } from "vitest";
-import type { OklchColor } from "./src/tokens.js";
 import {
   gammaEncode,
   linearSrgbToXyz,
@@ -10,7 +9,8 @@ import {
   p3ToFlutterColor,
   p3ToHex,
   xyzToLinearP3,
-} from "./tooling/oklch-to-p3.js";
+} from "../../scripts/oklch-to-p3.js";
+import type { OklchColor } from "./src/tokens.js";
 
 describe("OKLCH to P3 conversion", () => {
   describe("oklchToOklab", () => {

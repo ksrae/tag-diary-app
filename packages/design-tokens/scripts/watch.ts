@@ -12,7 +12,7 @@ let pendingBuild = false;
 
 function runBuild(): Promise<void> {
   return new Promise((resolve, reject) => {
-    const proc = spawn("node", ["--import=tsx", "tooling/build.ts"], {
+    const proc = spawn("node", ["--import=tsx", "scripts/build.ts"], {
       cwd: ROOT,
       stdio: "inherit",
     });
