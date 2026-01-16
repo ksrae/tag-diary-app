@@ -36,9 +36,12 @@ structure:
       description: GCP infrastructure with Terraform
 
   packages:
-    - name: shared
-      path: packages/shared
-      description: Shared utilities and types (if needed)
+    - name: design-tokens
+      path: packages/design-tokens
+      description: Shared design tokens (Source of Truth)
+    - name: i18n
+      path: packages/i18n
+      description: Shared i18n package (Source of Truth)
 
 conventions:
   naming:

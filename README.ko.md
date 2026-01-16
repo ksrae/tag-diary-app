@@ -161,9 +161,8 @@ fullstack-starter/
 │   ├── mobile/        # Flutter 모바일 앱
 │   └── infra/         # Terraform 인프라
 ├── packages/
-│   ├── i18n/          # 공용 다국어 패키지 (Source of Truth)
 │   ├── design-tokens/ # 공용 디자인 토큰 (Source of Truth)
-│   └── shared/        # 공용 유틸리티
+│   └── i18n/          # 공용 다국어 패키지 (Source of Truth)
 ├── .agent/rules/      # AI 에이전트 가이드라인
 ├── .serena/           # Serena MCP 설정
 └── .github/workflows/ # CI/CD

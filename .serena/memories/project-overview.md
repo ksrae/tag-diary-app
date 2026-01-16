@@ -36,8 +36,8 @@ fullstack-starter/
 │   ├── mobile/        # Flutter mobile app (Flutter 3.38)
 │   └── infra/         # Terraform infrastructure
 ├── packages/
-│   ├── i18n/          # Shared i18n package (Source of Truth)
-│   └── shared/        # Shared utilities
+│   ├── design-tokens/ # Shared design tokens (Source of Truth)
+│   └── i18n/          # Shared i18n package (Source of Truth)
 ├── .agent/rules/      # AI agent guidelines
 ├── .serena/           # Serena MCP config
 └── .github/workflows/ # CI/CD pipelines

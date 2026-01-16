@@ -75,11 +75,10 @@ fullstack-starter/
 │   │   └── fastlane/           # CI/CD automation
 │   └── infra/        # Terraform infrastructure
 ├── packages/
-│   ├── i18n/         # Shared i18n (source of truth)
-│   │   └── src/      # ARB source files
 │   ├── design-tokens/ # Shared design tokens (source of truth)
 │   │   └── src/      # tokens.ts (OKLCH color definitions)
-│   └── shared/       # Shared utilities
+│   └── i18n/         # Shared i18n (source of truth)
+│       └── src/      # ARB source files
 ├── .agent/rules/     # AI agent guidelines
 └── .github/workflows/ # CI/CD pipelines
 ```
