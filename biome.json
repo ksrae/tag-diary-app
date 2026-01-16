@@ -15,7 +15,7 @@
       "!**/build",
       "!**/coverage",
       "!**/*.gen.ts",
-      "!**/apps/web/src/lib/api/**"
+      "!**/apps/web/src/lib/api"
     ]
   },
   "formatter": {
@@ -28,10 +28,26 @@
     "enabled": true,
     "rules": {
       "recommended": true,
+      "a11y": {
+        "noStaticElementInteractions": "warn",
+        "noNoninteractiveElementInteractions": "warn"
+      },
       "correctness": {
         "noUnusedImports": "error",
         "noUnusedVariables": "error",
         "useExhaustiveDependencies": "warn"
+      },
+      "nursery": {
+        "noFloatingPromises": "error",
+        "noLeakedRender": "error",
+        "useExhaustiveSwitchCases": "warn"
+      },
+      "performance": {
+        "noAccumulatingSpread": "error",
+        "noBarrelFile": "warn",
+        "noReExportAll": "warn",
+        "noDelete": "warn",
+        "useTopLevelRegex": "warn"
       },
       "style": {
         "noNonNullAssertion": "off",
