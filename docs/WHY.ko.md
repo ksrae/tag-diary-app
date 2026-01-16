@@ -184,6 +184,7 @@
 | 선택 | 대안 | 트레이드오프 | 수용 이유 |
 |------|------|-------------|-----------|
 | **Next.js** | Remix, SvelteKit | 상대적으로 큰 번들, 높은 복잡도 | React 19 최신 기능 지원, 방대한 생태계 |
+| **Next.js** | Flutter Web | 모바일과 별도 코드베이스 | SEO, SSR, 작은 번들, 웹 생태계 호환성 |
 | **FastAPI** | Node.js (NestJS) | 두 가지 런타임 관리 (Node+Python) | Python의 강력한 AI/ML 라이브러리 활용, 확장성 |
 | **Flutter** | React Native | 앱 용량 증가, 독자적인 렌더링 엔진 | 전자정부 표준 준수, OS 업데이트에 덜 민감한 UI 일관성 |
 

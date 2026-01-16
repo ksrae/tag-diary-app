@@ -184,6 +184,7 @@ We prioritize **speed** across the entire development workflow by choosing Rust-
 | Choice | Trade-off | Why We Accept It |
 |--------|-----------|------------------|
 | Next.js over Remix/SvelteKit | Larger bundle, more complexity | Ecosystem, React 19 compatibility |
+| Next.js over Flutter Web | Separate codebase from mobile | SEO, SSR, smaller bundle, web ecosystem compatibility |
 | FastAPI over Node.js | Two runtimes (Node + Python) | Python AI/ML ecosystem, scalability |
 | Flutter over React Native | Larger app size, custom rendering | Korea eGovFrame v5, flexible versioning |
 
