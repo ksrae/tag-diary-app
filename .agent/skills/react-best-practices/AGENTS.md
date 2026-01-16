@@ -729,7 +729,7 @@ function Dashboard() {
 
 **Impact: MEDIUM (prevents memory leaks and redundant handlers)**
 
-Use a shared hook or module-level listener for global events to prevent multiple subscriptions.
+Use `@reactuses/core` hooks for global events to prevent multiple subscriptions and ensure proper cleanup.
 
 **Incorrect: each component creates its own listener**
 
@@ -751,20 +751,24 @@ function Component2() {
 }
 ```
 
-**Correct: shared hook**
+**Correct: use @reactuses/core hooks**
 
 ```tsx
-function useWindowResize(callback: () => void) {
-  const callbackRef = useRef(callback)
-  callbackRef.current = callback
+import { useEventListener, useWindowSize } from '@reactuses/core'
 
-  useEffect(() => {
-    const handler = () => callbackRef.current()
-    window.addEventListener('resize', handler)
-    return () => window.removeEventListener('resize', handler)
-  }, [])
+// Option 1: Listen to resize event directly
+function Component1() {
+  useEventListener('resize', () => console.log('resize'))
+}
+
+// Option 2: Get window dimensions reactively
+function Component2() {
+  const { width, height } = useWindowSize()
+  // Automatically updates on resize
 }
 ```
+
+`useEventListener` handles cleanup automatically and stores the handler in a ref internally, preventing unnecessary re-subscriptions.
 
 ---
 
@@ -885,7 +889,7 @@ function Profile({ user }: { user: User }) {
 
 **Impact: MEDIUM (reduces re-render frequency)**
 
-Subscribe to derived boolean state instead of continuous values to reduce re-render frequency.
+Subscribe to derived boolean state instead of continuous values to reduce re-render frequency. Use `useMediaQuery` from `@reactuses/core`.
 
 **Incorrect: re-renders on every pixel change**
 
@@ -900,11 +904,15 @@ function Sidebar() {
 **Correct: re-renders only when boolean changes**
 
 ```tsx
+import { useMediaQuery } from '@reactuses/core'
+
 function Sidebar() {
   const isMobile = useMediaQuery('(max-width: 767px)')
   return <nav className={isMobile ? 'mobile' : 'desktop'}>
 }
 ```
+
+`useMediaQuery` uses `useSyncExternalStore` internally for optimized re-rendering and only triggers updates when the query match state changes.
 
 ### 5.5 Use Functional setState Updates
 
@@ -1042,7 +1050,7 @@ For simple primitives (`useState(0)`), direct references (`useState(props.value)
 
 **Impact: MEDIUM (maintains UI responsiveness)**
 
-Mark frequent, non-urgent state updates as transitions to maintain UI responsiveness.
+Mark frequent, non-urgent state updates as transitions to maintain UI responsiveness. Alternatively, use throttling from `@reactuses/core`.
 
 **Incorrect: blocks UI on every scroll**
 
@@ -1057,7 +1065,7 @@ function ScrollTracker() {
 }
 ```
 
-**Correct: non-blocking updates**
+**Correct: non-blocking updates with startTransition**
 
 ```tsx
 import { startTransition } from 'react'
@@ -1073,6 +1081,26 @@ function ScrollTracker() {
   }, [])
 }
 ```
+
+**Alternative: throttling with @reactuses/core**
+
+```tsx
+import { useEventListener, useThrottle } from '@reactuses/core'
+
+function ScrollTracker() {
+  const [scrollY, setScrollY] = useState(0)
+  const throttledScrollY = useThrottle(scrollY, 100) // Update max 10x/sec
+
+  useEventListener('scroll', () => setScrollY(window.scrollY), {
+    passive: true
+  })
+
+  // Use throttledScrollY for rendering
+  return <div>Scroll: {throttledScrollY}px</div>
+}
+```
+
+Throttling is often more appropriate for scroll events as it provides consistent update intervals.
 
 ---
 
@@ -1901,7 +1929,7 @@ Advanced patterns for specific cases that require careful implementation.
 
 **Impact: LOW (stable subscriptions)**
 
-Store callbacks in refs when used in effects that shouldn't re-subscribe on callback changes.
+Store callbacks in refs when used in effects that shouldn't re-subscribe on callback changes. Prefer `@reactuses/core` hooks which handle this internally.
 
 **Incorrect: re-subscribes on every render**
 
@@ -1914,7 +1942,20 @@ function useWindowEvent(event: string, handler: () => void) {
 }
 ```
 
-**Correct: stable subscription**
+**Correct: use @reactuses/core useEventListener**
+
+```tsx
+import { useEventListener } from '@reactuses/core'
+
+function Component() {
+  // Handler is stored in a ref internally - no re-subscription on handler change
+  useEventListener('resize', () => {
+    console.log('Window resized')
+  })
+}
+```
+
+**Alternative: use `useEffectEvent` for custom hooks**
 
 ```tsx
 import { useEffectEvent } from 'react'
@@ -1929,27 +1970,13 @@ function useWindowEvent(event: string, handler: () => void) {
 }
 ```
 
-**Alternative: use `useEffectEvent` if you're on latest React:**
-
 `useEffectEvent` provides a cleaner API for the same pattern: it creates a stable function reference that always calls the latest version of the handler.
 
 ### 8.2 useLatest for Stable Callback Refs
 
 **Impact: LOW (prevents effect re-runs)**
 
-Access latest values in callbacks without adding them to dependency arrays. Prevents effect re-runs while avoiding stale closures.
-
-**Implementation:**
-
-```typescript
-function useLatest<T>(value: T) {
-  const ref = useRef(value)
-  useEffect(() => {
-    ref.current = value
-  }, [value])
-  return ref
-}
-```
+Access latest values in callbacks without adding them to dependency arrays. Prevents effect re-runs while avoiding stale closures. Use `useLatest` from `@reactuses/core`.
 
 **Incorrect: effect re-runs on every callback change**
 
@@ -1964,9 +1991,11 @@ function SearchInput({ onSearch }: { onSearch: (q: string) => void }) {
 }
 ```
 
-**Correct: stable effect, fresh callback**
+**Correct: stable effect, fresh callback with @reactuses/core**
 
 ```tsx
+import { useLatest } from '@reactuses/core'
+
 function SearchInput({ onSearch }: { onSearch: (q: string) => void }) {
   const [query, setQuery] = useState('')
   const onSearchRef = useLatest(onSearch)
@@ -1978,6 +2007,25 @@ function SearchInput({ onSearch }: { onSearch: (q: string) => void }) {
 }
 ```
 
+**Alternative: use useDebounce for this specific pattern**
+
+```tsx
+import { useDebounce } from '@reactuses/core'
+
+function SearchInput({ onSearch }: { onSearch: (q: string) => void }) {
+  const [query, setQuery] = useState('')
+  const debouncedQuery = useDebounce(query, 300)
+
+  useEffect(() => {
+    if (debouncedQuery) {
+      onSearch(debouncedQuery)
+    }
+  }, [debouncedQuery, onSearch])
+}
+```
+
+For debounced search specifically, `useDebounce` provides a cleaner solution.
+
 ---
 
 ## References
@@ -1986,6 +2034,5 @@ function SearchInput({ onSearch }: { onSearch: (q: string) => void }) {
 2. [https://nextjs.org](https://nextjs.org)
 3. [https://tanstack.com/query](https://tanstack.com/query)
 4. [https://github.com/shuding/better-all](https://github.com/shuding/better-all)
-5. [https://github.com/isaacs/node-lru-cache](https://github.com/isaacs/node-lru-cache)
-6. [https://vercel.com/blog/how-we-optimized-package-imports-in-next-js](https://vercel.com/blog/how-we-optimized-package-imports-in-next-js)
-7. [https://vercel.com/blog/how-we-made-the-vercel-dashboard-twice-as-fast](https://vercel.com/blog/how-we-made-the-vercel-dashboard-twice-as-fast)
+5. [https://reactuse.com](https://reactuse.com) - @reactuses/core hooks library
+
