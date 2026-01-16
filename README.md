@@ -182,17 +182,18 @@ mise tasks --all
 
 | Command | Description |
 |---------|-------------|
-| `mise run install` | Install all dependencies |
+| `mise db:migrate` | Run database migrations |
 | `mise dev` | Start all services |
-| `mise lint` | Lint all apps |
 | `mise format` | Format all apps |
-| `mise test` | Test all apps |
-| `mise typecheck` | Type check |
-| `mise i18n:build` | Build i18n files |
-| `mise tokens:build` | Build design tokens |
 | `mise gen:api` | Generate OpenAPI schema and API clients |
-| `mise infra:up` | Start local infrastructure |
+| `mise i18n:build` | Build i18n files |
 | `mise infra:down` | Stop local infrastructure |
+| `mise infra:up` | Start local infrastructure |
+| `mise lint` | Lint all apps |
+| `mise run install` | Install all dependencies |
+| `mise test` | Test all apps |
+| `mise tokens:build` | Build design tokens |
+| `mise typecheck` | Type check |
 
 ### App-specific Tasks
 

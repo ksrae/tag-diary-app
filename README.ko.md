@@ -182,17 +182,18 @@ mise tasks --all
 
 | 명령어 | 설명 |
 |--------|------|
-| `mise run install` | 모든 의존성 설치 |
+| `mise db:migrate` | 데이터베이스 마이그레이션 실행 |
 | `mise dev` | 모든 서비스 시작 |
-| `mise lint` | 전체 앱 린트 검사 |
 | `mise format` | 전체 앱 코드 포맷팅 |
-| `mise test` | 전체 앱 테스트 실행 |
-| `mise typecheck` | 타입 체크 |
-| `mise i18n:build` | 다국어 파일 빌드 |
-| `mise tokens:build` | 디자인 토큰 빌드 |
 | `mise gen:api` | OpenAPI 스키마 및 클라이언트 생성 |
-| `mise infra:up` | 로컬 인프라 시작 |
+| `mise i18n:build` | 다국어 파일 빌드 |
 | `mise infra:down` | 로컬 인프라 중지 |
+| `mise infra:up` | 로컬 인프라 시작 |
+| `mise lint` | 전체 앱 린트 검사 |
+| `mise run install` | 모든 의존성 설치 |
+| `mise test` | 전체 앱 테스트 실행 |
+| `mise tokens:build` | 디자인 토큰 빌드 |
+| `mise typecheck` | 타입 체크 |
 
 ### 앱별 태스크
 

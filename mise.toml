@@ -14,17 +14,18 @@ hadolint = "latest"
 "github:Infisical/cli" = "latest"
 
 [tasks]
+"db:migrate" = { depends = ["//apps/api:migrate"], description = "Run database migrations" }
 dev = { depends = ["//apps/api:dev", "//apps/web:dev", "//apps/worker:dev"], description = "Start all services" }
+format = { depends = ["//apps/api:format", "//apps/web:format", "//apps/worker:format"], description = "Format all apps" }
+"gen:api" = { run = "mise //apps/api:gen:openapi && mise //apps/web:gen:api", description = "Generate OpenAPI schema and API clients" }
+"i18n:build" = { depends = ["//packages/i18n:build"], description = "Build i18n files" }
+"infra:down" = { depends = ["//apps/api:infra:down"], description = "Stop local infrastructure" }
+"infra:up" = { depends = ["//apps/api:infra:up"], description = "Start local infrastructure" }
 install = { depends = ["//apps/web:install", "//apps/api:install", "//apps/worker:install", "//apps/mobile:install", "//packages/design-tokens:install", "//packages/i18n:install"], description = "Install all dependencies" }
 lint = { depends = ["//apps/api:lint", "//apps/web:lint", "//apps/worker:lint"], description = "Lint all apps" }
-format = { depends = ["//apps/api:format", "//apps/web:format", "//apps/worker:format"], description = "Format all apps" }
 test = { depends = ["//apps/api:test", "//apps/web:test", "//apps/worker:test"], description = "Test all apps" }
-typecheck = { depends = ["//apps/api:typecheck", "//apps/web:typecheck"], description = "Type check all apps" }
-"i18n:build" = { depends = ["//packages/i18n:build"], description = "Build i18n files" }
 "tokens:build" = { depends = ["//packages/design-tokens:build"], description = "Build design tokens" }
-"gen:api" = { run = "mise //apps/api:gen:openapi && mise //apps/web:gen:api", description = "Generate OpenAPI schema and API clients" }
-"infra:up" = { depends = ["//apps/api:infra:up"], description = "Start local infrastructure" }
-"infra:down" = { depends = ["//apps/api:infra:down"], description = "Stop local infrastructure" }
+typecheck = { depends = ["//apps/api:typecheck", "//apps/web:typecheck"], description = "Type check all apps" }
 
 [tasks."git:commit-msg"]
 description = "Validate commit message using commitlint"
