@@ -1,5 +1,27 @@
 # Changelog
 
+## [2.0.0](https://github.com/first-fluke/fullstack-starter/compare/v1.3.0...v2.0.0) (2026-01-16)
+
+
+### ⚠ BREAKING CHANGES
+
+* **api:** existing tokens are incompatible, users need to re-login
+
+### Features
+
+* add react best practices skill and update biome config ([c5de500](https://github.com/first-fluke/fullstack-starter/commit/c5de50092ff7eb1d12f58aa3ad192daa416607a2))
+* recommend `@reactuses/core` for advanced event handlers, global event listeners, and client-side storage patterns ([710350f](https://github.com/first-fluke/fullstack-starter/commit/710350f9a9dbfe1d792dd9ce09ca95fd21bb0848))
+
+
+### Bug Fixes
+
+* **api:** resolve ruff lint errors ([c49492a](https://github.com/first-fluke/fullstack-starter/commit/c49492a58e533b92cfce2de05bf07f753ccc001d))
+
+
+### Code Refactoring
+
+* **api:** migrate from python-jose to jwcrypto for JWE ([5d42928](https://github.com/first-fluke/fullstack-starter/commit/5d4292877ef065fa277a84a175f5cd863f5d3cd4))
+
 ## [1.3.0](https://github.com/first-fluke/fullstack-starter/compare/v1.2.0...v1.3.0) (2026-01-15)
 
 
