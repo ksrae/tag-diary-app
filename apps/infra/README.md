@@ -8,10 +8,11 @@ Terraform configuration for GCP infrastructure provisioning.
 
 Before running `terraform apply`, enable the following APIs in your GCP project:
 
-- [Service Networking API](https://console.cloud.google.com/apis/api/servicenetworking.googleapis.com/metrics)
 - [Compute Engine API](https://console.cloud.google.com/apis/api/compute.googleapis.com/metrics)
 - [Cloud Run API](https://console.cloud.google.com/apis/library/run.googleapis.com)
 - [Cloud Tasks API](https://console.cloud.google.com/apis/library/cloudtasks.googleapis.com)
+- [IAM Service Account Credentials API](https://console.cloud.google.com/marketplace/product/google/iamcredentials.googleapis.com)
+- [Service Networking API](https://console.cloud.google.com/apis/api/servicenetworking.googleapis.com/metrics)
 
 ## Usage
 
