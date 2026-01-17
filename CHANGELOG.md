@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.2.1](https://github.com/first-fluke/fullstack-starter/compare/v2.2.0...v2.2.1) (2026-01-17)
+
+
+### Bug Fixes
+
+* **mobile:** update swagger_parser config to latest format ([a517317](https://github.com/first-fluke/fullstack-starter/commit/a5173179062cd55cbf706f094f22a4f8e084a0a8))
+
 ## [2.2.0](https://github.com/first-fluke/fullstack-starter/compare/v2.1.0...v2.2.0) (2026-01-17)
 
 
