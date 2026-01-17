@@ -2,7 +2,7 @@
 
 This document outlines the entire process of migrating a GCP project to a new project.
 
-## 📋 Migration Checklist
+## Migration Checklist
 
 ### Phase 1: Preparation
 - [ ] Create new GCP Project
@@ -27,7 +27,7 @@ This document outlines the entire process of migrating a GCP project to a new pr
 
 ---
 
-## 🔧 Required API List
+## Required API List
 
 APIs to enable in the new project:
 
@@ -48,7 +48,7 @@ gcloud services enable \
 
 ---
 
-## 1️⃣ Database Migration
+## Database Migration
 
 ### Cloud SQL Export (Old Project)
 
@@ -105,7 +105,7 @@ PGPASSWORD='PASSWORD' psql -h PUBLIC_IP -U your-db-user -d your-db-name -f dump.
 
 ---
 
-## 2️⃣ GCS Bucket Migration
+## GCS Bucket Migration
 
 ```bash
 # Grant read permission to new account on existing bucket (using old account)
@@ -126,7 +126,7 @@ gcloud storage rsync -r gs://OLD_BUCKET gs://NEW_BUCKET
 
 ---
 
-## 3️⃣ Container Image Migration
+## Container Image Migration
 
 ```bash
 # Configure Docker Authentication
@@ -141,7 +141,7 @@ docker push NEW_REGION-docker.pkg.dev/NEW_PROJECT/REPO/IMAGE:TAG
 
 ---
 
-## 4️⃣ Update GitHub Secrets
+## Update GitHub Secrets
 
 Update in Repository Settings > Secrets and variables > Actions:
 
@@ -166,7 +166,7 @@ gcloud iam workload-identity-pools providers describe PROVIDER_ID \
 
 ---
 
-## 5️⃣ Source Code Changes
+## Source Code Changes
 
 ### `apps/api/src/lib/config.py`
 ```python
@@ -183,7 +183,7 @@ env {
 
 ---
 
-## 🚀 Automation Script
+## Automation Script
 
 To automate the entire migration:
 
@@ -197,7 +197,7 @@ To automate the entire migration:
 
 ---
 
-## ⚠️ Notes
+## Notes
 
 1. **Cloud SQL Private IP**: Cannot be accessed directly from local. Temporary Public IP enablement required.
 2. **Account Switching**: `gcloud config set account` is mandatory when working across old/new projects.
@@ -206,7 +206,7 @@ To automate the entire migration:
 
 ---
 
-## 🔧 Terraform Variable Structure
+## Terraform Variable Structure
 
 Terraform files have parameterized project ID and region, so you only need to modify the top of `variables.tf` during migration.
 
@@ -236,7 +236,7 @@ variable "region" {
 | `iam.tf`       | `project`, SA email                             |
 | `compute-*.tf` | Image path, `GOOGLE_CLOUD_PROJECT_ID` env var   |
 
-### ⚠️ Items Requiring Manual Changes
+### Items Requiring Manual Changes
 
 The following items cannot be parameterized due to Terraform limitations and require manual changes:
 
