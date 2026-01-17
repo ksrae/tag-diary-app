@@ -14,6 +14,10 @@ Before running `terraform apply`, enable the following APIs in your GCP project:
 - [IAM Service Account Credentials API](https://console.cloud.google.com/marketplace/product/google/iamcredentials.googleapis.com)
 - [Service Networking API](https://console.cloud.google.com/apis/api/servicenetworking.googleapis.com/metrics)
 
+### Domain Configuration
+
+If you use third-party DNS services (Cloudflare, Route53, etc.), you must map your domains at [Cloud Run Domains](https://console.cloud.google.com/run/domains).
+
 ## Usage
 
 ```bash
