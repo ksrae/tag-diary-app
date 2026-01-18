@@ -2,13 +2,8 @@
 
 import { createAuthClient } from "better-auth/react";
 import { env } from "@/config/env";
-import {
-  apiClient,
-  clearTokens,
-  getAccessToken,
-  setAccessToken,
-  setRefreshToken,
-} from "@/lib/api-client";
+import { apiClient } from "@/lib/api-client";
+import { clearTokens, getAccessToken, setAccessToken, setRefreshToken } from "@/lib/auth/token";
 
 export type OAuthProviderId = "google" | "github" | "facebook";
 

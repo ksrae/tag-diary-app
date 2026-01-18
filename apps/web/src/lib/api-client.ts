@@ -1,41 +1,6 @@
 import axios from "axios";
 import { env } from "@/config/env";
-
-const STORAGE_PREFIX = "fullstack_";
-
-const STORAGE_KEYS = {
-  ACCESS_TOKEN: `${STORAGE_PREFIX}access_token`,
-  REFRESH_TOKEN: `${STORAGE_PREFIX}refresh_token`,
-};
-
-function getAccessToken() {
-  if (typeof window === "undefined") return null;
-  return localStorage.getItem(STORAGE_KEYS.ACCESS_TOKEN);
-}
-
-function getRefreshToken() {
-  if (typeof window === "undefined") return null;
-  return localStorage.getItem(STORAGE_KEYS.REFRESH_TOKEN);
-}
-
-function setAccessToken(token: string) {
-  if (typeof window !== "undefined") {
-    localStorage.setItem(STORAGE_KEYS.ACCESS_TOKEN, token);
-  }
-}
-
-function setRefreshToken(token: string) {
-  if (typeof window !== "undefined") {
-    localStorage.setItem(STORAGE_KEYS.REFRESH_TOKEN, token);
-  }
-}
-
-function clearTokens() {
-  if (typeof window !== "undefined") {
-    localStorage.removeItem(STORAGE_KEYS.ACCESS_TOKEN);
-    localStorage.removeItem(STORAGE_KEYS.REFRESH_TOKEN);
-  }
-}
+import { clearTokens, getAccessToken, getRefreshToken, setAccessToken } from "@/lib/auth/token";
 
 export const apiClient = axios.create({
   baseURL: env.NEXT_PUBLIC_API_URL,
@@ -124,5 +89,3 @@ apiClient.interceptors.response.use(
     return Promise.reject(error);
   }
 );
-
-export { getAccessToken, getRefreshToken, setAccessToken, setRefreshToken, clearTokens };
