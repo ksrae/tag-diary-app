@@ -13,7 +13,7 @@ import {
   exchangeOAuthForBackendJwt,
   hasBackendAccessToken,
   useSession,
-} from "@/lib/auth-client";
+} from "@/lib/auth/auth-client";
 import { getQueryClient } from "@/lib/get-query-client";
 
 const TanStackDevTools =
@@ -61,7 +61,7 @@ export function Providers({ children, locale, messages }: ProvidersProps) {
       <QueryClientProvider client={queryClient}>
         <JotaiProvider>
           <BackendJwtBridge />
-          <NextIntlClientProvider locale={locale} messages={messages}>
+          <NextIntlClientProvider locale={locale} messages={messages} timeZone="Asia/Seoul">
             {children}
           </NextIntlClientProvider>
         </JotaiProvider>
