@@ -13,6 +13,8 @@ resource "google_project_service" "apis" {
     "compute.googleapis.com",
     "iamcredentials.googleapis.com",
     "iam.googleapis.com",
+    "firestore.googleapis.com",
+    "aiplatform.googleapis.com",
   ])
 
   project = var.project_id

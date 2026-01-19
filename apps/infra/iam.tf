@@ -107,3 +107,21 @@ resource "google_project_iam_member" "github_sa_user" {
   role    = "roles/iam.serviceAccountUser"
   member  = "serviceAccount:${google_service_account.github.email}"
 }
+
+# Vertex AI Service Identity
+# This creates the Vertex AI Service Agent for the project
+resource "google_project_service_identity" "vertex_ai" {
+  provider = google-beta
+  project  = var.project_id
+  service  = "aiplatform.googleapis.com"
+
+  depends_on = [google_project_service.apis]
+}
+
+# Grant Vertex AI Service Agent access to GCS buckets
+# Required for model training, batch prediction, and artifact storage
+resource "google_project_iam_member" "vertex_ai_storage" {
+  project = var.project_id
+  role    = "roles/storage.objectViewer"
+  member  = "serviceAccount:${google_project_service_identity.vertex_ai.email}"
+}
