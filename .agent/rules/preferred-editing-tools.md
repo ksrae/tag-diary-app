@@ -25,21 +25,21 @@ This rule mandates the use of specialized agentic tools for file modifications i
 ### 2. Tool Priority Hierarchy
 You **MUST** follow this priority order when selecting a tool for file modification. Always check if a higher-priority tool can accomplish the task before moving to a lower-priority one.
 
-#### Priority 1: Semantic & Symbolic Editing (Serena MCP)
-**Use these first.** These tools respect the syntax and structure of the code (LSP-based).
-- **`mcp_serena_rename_symbol`**: For renaming variables, functions, classes, etc. across the codebase.
-- **`mcp_serena_insert_before_symbol`** / **`mcp_serena_insert_after_symbol`**: For inserting code relative to existing symbols (e.g., adding a method to a class).
-
-#### Priority 2: Structured & Pattern-Based Editing (Serena MCP)
-**Use these if no specific symbol is targeted.** These offer robust regex support and larger context handling.
-- **`mcp_serena_replace_content`**: For replacing content using powerful regex (Python `re` syntax) or literal strings.
-    - *Tip*: Use regex mode with wildcards (e.g., `start.*?end`) to safely replace blocks without quoting the entire content.
-
-#### Priority 3: Standard Text Block Editing (Native)
+#### Priority 1: Standard Text Block Editing (Native)
 **Use these for simple, contiguous text replacements** where structural tools are overkill or inapplicable.
 - **`replace_file_content`**: For replacing a single contiguous block of lines.
 - **`multi_replace_file_content`**: For making multiple, non-contiguous edits in a single file.
 
-#### Priority 4: File Creation & Overwrite (Native)
+#### Priority 2: File Creation & Overwrite (Native)
 **Use these for new files or when a complete rewrite is easier/necessary.**
 - **`write_to_file`**: For creating new files or overwriting existing files (with `Overwrite: true`).
+
+#### Priority 3: Semantic & Symbolic Editing (Serena MCP)
+**Use these first.** These tools respect the syntax and structure of the code (LSP-based).
+- **`mcp_serena_rename_symbol`**: For renaming variables, functions, classes, etc. across the codebase.
+- **`mcp_serena_insert_before_symbol`** / **`mcp_serena_insert_after_symbol`**: For inserting code relative to existing symbols (e.g., adding a method to a class).
+
+#### Priority 4: Structured & Pattern-Based Editing (Serena MCP)
+**Use these if no specific symbol is targeted.** These offer robust regex support and larger context handling.
+- **`mcp_serena_replace_content`**: For replacing content using powerful regex (Python `re` syntax) or literal strings.
+    - *Tip*: Use regex mode with wildcards (e.g., `start.*?end`) to safely replace blocks without quoting the entire content.
