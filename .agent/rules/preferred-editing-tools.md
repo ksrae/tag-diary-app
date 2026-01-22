@@ -28,7 +28,6 @@ You **MUST** follow this priority order when selecting a tool for file modificat
 #### Priority 1: Semantic & Symbolic Editing (Serena MCP)
 **Use these first.** These tools respect the syntax and structure of the code (LSP-based).
 - **`mcp_serena_rename_symbol`**: For renaming variables, functions, classes, etc. across the codebase.
-- **`mcp_serena_replace_symbol_body`**: For replacing the implementation of a function, method, or class.
 - **`mcp_serena_insert_before_symbol`** / **`mcp_serena_insert_after_symbol`**: For inserting code relative to existing symbols (e.g., adding a method to a class).
 
 #### Priority 2: Structured & Pattern-Based Editing (Serena MCP)
