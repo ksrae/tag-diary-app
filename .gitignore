@@ -64,3 +64,5 @@ apps/mobile/.packages
 *.bak
 *.tmp
 .cache/
+
+.opencode/mimic/
