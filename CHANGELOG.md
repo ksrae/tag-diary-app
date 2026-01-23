@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.5.0](https://github.com/first-fluke/fullstack-starter/compare/v2.4.0...v2.5.0) (2026-01-23)
+
+
+### Features
+
+* **root:** add postgres best practices skill ([99c6f25](https://github.com/first-fluke/fullstack-starter/commit/99c6f2567a2a53abd7692a3f51ec39eb495ae450))
+
 ## [2.4.0](https://github.com/first-fluke/fullstack-starter/compare/v2.3.0...v2.4.0) (2026-01-19)
 
 
