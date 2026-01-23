@@ -5,6 +5,7 @@ import { QueryClientProvider } from "@tanstack/react-query";
 import { Provider as JotaiProvider } from "jotai";
 import dynamic from "next/dynamic";
 import { type AbstractIntlMessages, NextIntlClientProvider } from "next-intl";
+import { NuqsAdapter } from "nuqs/adapters/next/app";
 import type { ReactNode } from "react";
 import { useEffect } from "react";
 import { env } from "@/config/env";
@@ -59,13 +60,15 @@ export function Providers({ children, locale, messages }: ProvidersProps) {
   return (
     <SerwistProvider swUrl="/serwist/sw.js">
       <QueryClientProvider client={queryClient}>
-        <JotaiProvider>
-          <BackendJwtBridge />
-          <NextIntlClientProvider locale={locale} messages={messages} timeZone="Asia/Seoul">
-            {children}
-          </NextIntlClientProvider>
-        </JotaiProvider>
-        <TanStackDevTools />
+        <NuqsAdapter>
+          <JotaiProvider>
+            <BackendJwtBridge />
+            <NextIntlClientProvider locale={locale} messages={messages} timeZone="Asia/Seoul">
+              {children}
+            </NextIntlClientProvider>
+          </JotaiProvider>
+          <TanStackDevTools />
+        </NuqsAdapter>
       </QueryClientProvider>
     </SerwistProvider>
   );
