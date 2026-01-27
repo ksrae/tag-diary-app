@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.6.0](https://github.com/first-fluke/fullstack-starter/compare/v2.5.0...v2.6.0) (2026-01-27)
+
+
+### Features
+
+* add new agent skills and their associated reference documentation ([afc2363](https://github.com/first-fluke/fullstack-starter/commit/afc2363722e02699f6c8e19aa58872fae85d1f90))
+
 ## [2.5.0](https://github.com/first-fluke/fullstack-starter/compare/v2.4.0...v2.5.0) (2026-01-23)
 
 
