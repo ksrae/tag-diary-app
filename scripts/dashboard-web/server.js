@@ -364,8 +364,20 @@ const httpServer = http.createServer((req, res) => {
   }
 
   // Serve static files
-  let filePath = req.url === "/" ? "/index.html" : req.url;
-  filePath = path.join(PUBLIC_DIR, filePath);
+  let requestedPath = req.url === "/" ? "/index.html" : req.url;
+  
+  // Sanitize: remove query strings and decode
+  requestedPath = decodeURIComponent(requestedPath.split("?")[0]);
+  
+  // Resolve to absolute path and verify it's within PUBLIC_DIR (prevent path traversal)
+  const filePath = path.resolve(PUBLIC_DIR, "." + requestedPath);
+  const normalizedPublicDir = path.resolve(PUBLIC_DIR);
+  
+  if (!filePath.startsWith(normalizedPublicDir + path.sep) && filePath !== normalizedPublicDir) {
+    res.writeHead(403);
+    res.end("Forbidden");
+    return;
+  }
 
   const ext = path.extname(filePath);
   const contentType = MIME_TYPES[ext] || "application/octet-stream";
