@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.7.1](https://github.com/first-fluke/fullstack-starter/compare/v2.7.0...v2.7.1) (2026-01-29)
+
+
+### Bug Fixes
+
+* prevent path traversal vulnerability in dashboard server ([22fed9d](https://github.com/first-fluke/fullstack-starter/commit/22fed9d80012ed18a64c262a2597284146177511))
+
 ## [2.7.0](https://github.com/first-fluke/fullstack-starter/compare/v2.6.0...v2.7.0) (2026-01-29)
 
 
