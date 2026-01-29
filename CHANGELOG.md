@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.7.0](https://github.com/first-fluke/fullstack-starter/compare/v2.6.0...v2.7.0) (2026-01-29)
+
+
+### Features
+
+* add multi-agent orchestration skills from subagent-orchestrator ([cdfa245](https://github.com/first-fluke/fullstack-starter/commit/cdfa245bc74db313ebe17d79212f1135c55b084b))
+
 ## [2.6.0](https://github.com/first-fluke/fullstack-starter/compare/v2.5.0...v2.6.0) (2026-01-27)
 
 
