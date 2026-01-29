@@ -66,3 +66,12 @@ apps/mobile/.packages
 .cache/
 
 .opencode/mimic/
+
+# Antigravity outputs
+.gemini/antigravity/brain/*
+!.gemini/antigravity/brain/.gitkeep
+.agent/plan.json
+
+# Serena Memory (runtime state)
+.serena/memories/*
+!.serena/memories/.gitkeep
