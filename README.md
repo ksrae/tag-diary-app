@@ -76,7 +76,7 @@ graph TB
 
 ![Fullstack](./docs/fullstack.jpg)
 
-### AI Agent Orchestration
+## AI Agent Orchestration
 
 This template includes a multi-agent coordination workflow for complex cross-domain tasks.
 
