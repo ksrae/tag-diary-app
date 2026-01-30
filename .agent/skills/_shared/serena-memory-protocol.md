@@ -1,6 +1,6 @@
 # Serena Memory Protocol (CLI Mode)
 
-When running as a CLI subagent via `gemini -p "..." --yolo`, follow this protocol:
+When running as a CLI subagent via `gemini -p "..." --approval-mode=yolo`, follow this protocol:
 
 ## On Start
 1. `read_memory("task-board.md")` to confirm your assigned task

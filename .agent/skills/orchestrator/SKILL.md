@@ -17,7 +17,7 @@ description: Automated multi-agent orchestrator that spawns CLI subagents in par
 - Quick bug fixes or minor changes
 
 ## Important
-This skill orchestrates CLI subagents via `gemini -p "..." --yolo`. It uses Serena Memory as a shared state bus. Each subagent runs as an independent process.
+This skill orchestrates CLI subagents via `gemini -p "..." --approval-mode=yolo`. It uses Serena Memory as a shared state bus. Each subagent runs as an independent process.
 
 ## Configuration
 

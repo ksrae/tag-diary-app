@@ -1,6 +1,6 @@
 # Subagent Prompt Template
 
-This template is used by the orchestrator to construct self-contained prompts for CLI subagents launched via `gemini -p "..." --yolo`.
+This template is used by the orchestrator to construct self-contained prompts for CLI subagents launched via `gemini -p "..." --approval-mode=yolo`.
 
 ## Template
 
