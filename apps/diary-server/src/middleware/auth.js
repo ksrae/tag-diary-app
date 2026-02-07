@@ -10,16 +10,18 @@ import { compactDecrypt } from "jose";
  * - Checks expiration
  */
 export const authMiddleware = async (req, res, next) => {
+  // === DEV_BYPASS_START ===
   // Skip authentication in development mode for testing
   if (process.env.NODE_ENV !== 'production') {
     console.log('[DEV] Skipping authentication in development mode');
     req.user = {
       user_id: 'dev-test-user',
       token_type: 'access',
-      is_pro: true, // Grant Pro access in dev mode
+      is_pro: true,
     };
     return next();
   }
+  // === DEV_BYPASS_END ===
 
   const authHeader = req.headers.authorization;
 
