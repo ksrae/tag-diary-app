@@ -240,55 +240,78 @@ class _AiGenerationModalState extends ConsumerState<AiGenerationModal> {
                 ],
               ),
               const SizedBox(height: 8),
-              SizedBox(
-                height: 80,
-                child: ListView.builder(
-                  scrollDirection: Axis.horizontal,
-                  itemCount: widget.photos.length,
-                  itemBuilder: (context, index) {
-                    final photo = widget.photos[index];
-                    final isSelected = _photoSelections[index];
-                    return GestureDetector(
-                      onTap: () => _togglePhoto(index),
-                      child: Container(
-                        width: 80,
-                        margin: const EdgeInsets.only(right: 8),
-                        decoration: BoxDecoration(
-                          border: Border.all(
-                            color: isSelected ? Theme.of(context).colorScheme.primary : Colors.grey.shade300,
-                            width: isSelected ? 3 : 1,
-                          ),
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: Stack(
-                          children: [
-                            ClipRRect(
-                              borderRadius: BorderRadius.circular(6),
-                              child: photo.imageFile != null
-                                  ? Image.file(photo.imageFile!, fit: BoxFit.cover, width: 80, height: 80)
-                                  : photo.imagePath != null
-                                      ? Image.file(File(photo.imagePath!), fit: BoxFit.cover, width: 80, height: 80)
-                                      : const Center(child: Icon(Icons.image)),
-                            ),
-                            if (isSelected)
-                              Positioned(
-                                top: 4,
-                                right: 4,
-                                child: Container(
-                                  padding: const EdgeInsets.all(2),
-                                  decoration: BoxDecoration(
-                                    color: Theme.of(context).colorScheme.primary,
-                                    shape: BoxShape.circle,
-                                  ),
-                                  child: const Icon(Icons.check, size: 12, color: Colors.white),
-                                ),
-                              ),
-                          ],
-                        ),
+              LayoutBuilder(
+                builder: (context, constraints) {
+                  // Max item size 80px - will fit 4+ items on normal phones, more on wider screens
+                  const maxItemSize = 80.0;
+                  const spacing = 6.0;
+                  
+                  // Calculate how many items fit per row
+                  final itemsPerRow = (constraints.maxWidth / (maxItemSize + spacing)).floor().clamp(4, 10);
+                  final itemWidth = (constraints.maxWidth - (spacing * (itemsPerRow - 1))) / itemsPerRow;
+                  
+                  // Calculate rows needed (max 2 rows visible)
+                  final rowsNeeded = (widget.photos.length / itemsPerRow).ceil();
+                  final visibleRows = rowsNeeded.clamp(1, 2);
+                  final height = (itemWidth * visibleRows) + (spacing * (visibleRows - 1));
+
+                  return SizedBox(
+                    height: height,
+                    child: GridView.builder(
+                      padding: EdgeInsets.zero,
+                      physics: rowsNeeded <= 2 
+                          ? const NeverScrollableScrollPhysics() 
+                          : const ClampingScrollPhysics(),
+                      gridDelegate: SliverGridDelegateWithMaxCrossAxisExtent(
+                        maxCrossAxisExtent: itemWidth,
+                        mainAxisSpacing: spacing,
+                        crossAxisSpacing: spacing,
                       ),
-                    );
-                  },
-                ),
+                      itemCount: widget.photos.length,
+                      itemBuilder: (context, index) {
+                        final photo = widget.photos[index];
+                        final isSelected = _photoSelections[index];
+                        return GestureDetector(
+                          onTap: () => _togglePhoto(index),
+                          child: Container(
+                            decoration: BoxDecoration(
+                              border: Border.all(
+                                color: isSelected ? Theme.of(context).colorScheme.primary : Colors.grey.shade300,
+                                width: isSelected ? 2 : 1,
+                              ),
+                              borderRadius: BorderRadius.circular(6),
+                            ),
+                            child: Stack(
+                              children: [
+                                ClipRRect(
+                                  borderRadius: BorderRadius.circular(4),
+                                  child: photo.imageFile != null
+                                      ? Image.file(photo.imageFile!, fit: BoxFit.cover, width: double.infinity, height: double.infinity)
+                                      : photo.imagePath != null
+                                          ? Image.file(File(photo.imagePath!), fit: BoxFit.cover, width: double.infinity, height: double.infinity)
+                                          : const Center(child: Icon(Icons.image, size: 20)),
+                                ),
+                                if (isSelected)
+                                  Positioned(
+                                    top: 2,
+                                    right: 2,
+                                    child: Container(
+                                      padding: const EdgeInsets.all(2),
+                                      decoration: BoxDecoration(
+                                        color: Theme.of(context).colorScheme.primary,
+                                        shape: BoxShape.circle,
+                                      ),
+                                      child: const Icon(Icons.check, size: 10, color: Colors.white),
+                                    ),
+                                  ),
+                              ],
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                  );
+                },
               ),
               const SizedBox(height: 16),
             ],
