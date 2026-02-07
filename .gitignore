@@ -79,3 +79,4 @@ htmlcov/
 .flutter-plugins-dependencies
 .packages
 .dart_tool/
+\n# Root docs\n/*.md\n!/README.md\n/version.txt\n/docs/\n
