@@ -9,10 +9,13 @@ aiRouter.post("/generate", async (req, res) => {
   try {
     const { prompt, mood, weather, sources, images } = req.body;
 
-    // Check Pro status
-    const userInfo = await getUserInfo(req.user.user_id, req.headers.authorization.split(" ")[1]);
-    if (!userInfo || !userInfo.is_pro) {
-      return res.status(403).json({ error: "Pro subscription required for AI generation" });
+    // Check Pro status (skip in development mode)
+    const isDev = process.env.NODE_ENV !== 'production';
+    if (!isDev) {
+      const userInfo = await getUserInfo(req.user.user_id, req.headers.authorization.split(" ")[1]);
+      if (!userInfo || !userInfo.is_pro) {
+        return res.status(403).json({ error: "Pro subscription required for AI generation" });
+      }
     }
 
     // Generate diary content using Gemini
@@ -35,10 +38,13 @@ aiRouter.post("/regenerate", async (req, res) => {
       ? `이전 내용을 참고하되 다른 방식으로 작성해주세요. 이전 내용: ${previous_content}\n\n새 요청: ${prompt}`
       : prompt;
 
-    // Check Pro status
-    const userInfo = await getUserInfo(req.user.user_id, req.headers.authorization.split(" ")[1]);
-    if (!userInfo || !userInfo.is_pro) {
-      return res.status(403).json({ error: "Pro subscription required for AI generation" });
+    // Check Pro status (skip in development mode)
+    const isDev = process.env.NODE_ENV !== 'production';
+    if (!isDev) {
+      const userInfo = await getUserInfo(req.user.user_id, req.headers.authorization.split(" ")[1]);
+      if (!userInfo || !userInfo.is_pro) {
+        return res.status(403).json({ error: "Pro subscription required for AI generation" });
+      }
     }
 
     const content = await generateDiary({ 
