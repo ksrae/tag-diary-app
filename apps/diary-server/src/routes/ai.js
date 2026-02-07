@@ -1,5 +1,6 @@
 import { Router } from "express";
 import { generateDiary } from "../lib/gemini.js";
+import { getUserInfo } from "../lib/api.js";
 
 export const aiRouter = Router();
 
@@ -7,6 +8,12 @@ export const aiRouter = Router();
 aiRouter.post("/generate", async (req, res) => {
   try {
     const { prompt, mood, weather, sources, images } = req.body;
+
+    // Check Pro status
+    const userInfo = await getUserInfo(req.user.user_id, req.headers.authorization.split(" ")[1]);
+    if (!userInfo || !userInfo.is_pro) {
+      return res.status(403).json({ error: "Pro subscription required for AI generation" });
+    }
 
     // Generate diary content using Gemini
     const content = await generateDiary({ prompt, mood, weather, sources, images });
@@ -27,6 +34,12 @@ aiRouter.post("/regenerate", async (req, res) => {
     const enhancedPrompt = previous_content 
       ? `이전 내용을 참고하되 다른 방식으로 작성해주세요. 이전 내용: ${previous_content}\n\n새 요청: ${prompt}`
       : prompt;
+
+    // Check Pro status
+    const userInfo = await getUserInfo(req.user.user_id, req.headers.authorization.split(" ")[1]);
+    if (!userInfo || !userInfo.is_pro) {
+      return res.status(403).json({ error: "Pro subscription required for AI generation" });
+    }
 
     const content = await generateDiary({ 
       prompt: enhancedPrompt, 

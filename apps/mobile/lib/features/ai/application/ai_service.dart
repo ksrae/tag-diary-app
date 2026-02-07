@@ -52,8 +52,7 @@ class AiService {
 }
 
 final aiServiceProvider = Provider<AiService>((ref) {
-  // Use a different URL for Android Emulator and iOS Simulator
-  final baseUrl = Platform.isAndroid ? 'http://10.0.2.2:3001' : 'http://localhost:3001';
+  const baseUrl = 'https://tag-diary-app.vercel.app';
   
   final dio = Dio(BaseOptions(
     baseUrl: baseUrl,
