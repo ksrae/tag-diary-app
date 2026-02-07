@@ -24,6 +24,12 @@ app.use((err, req, res, next) => {
   res.status(500).json({ error: "Internal server error" });
 });
 
-app.listen(PORT, "0.0.0.0", () => {
-  console.log(`🚀 AI Diary Proxy Server running on http://0.0.0.0:${PORT}`);
-});
+// For local development
+if (process.env.NODE_ENV !== 'production') {
+  app.listen(PORT, "0.0.0.0", () => {
+    console.log(`🚀 AI Diary Proxy Server running on http://0.0.0.0:${PORT}`);
+  });
+}
+
+// Export for Vercel Serverless
+export default app;

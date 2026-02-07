@@ -58,7 +58,10 @@ void main() async {
     }
   };
 
-  runApp(const ProviderScope(child: MyApp()));
+  runApp(ProviderScope(
+    child: const MyApp(),
+    overrides: [],
+  ));
 }
 
 /// {@template my_app}

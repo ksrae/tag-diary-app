@@ -1,5 +1,7 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:geolocator/geolocator.dart';
+import 'package:mobile/core/services/location_service.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:file_picker/file_picker.dart';
@@ -24,7 +26,6 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   // Settings values (mock for now, normally from prefs)
   bool _collectGallery = true;
   bool _collectCalendar = true;
-  bool _collectLocation = true;
   bool _collectHealth = true;
   bool _isLockEnabled = false;
   String _weatherRegion = 'Seoul';
@@ -41,7 +42,6 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       setState(() {
         _collectGallery = prefs.getBool('collect_gallery') ?? true;
         _collectCalendar = prefs.getBool('collect_calendar') ?? true;
-        _collectLocation = prefs.getBool('collect_location') ?? true;
         _collectHealth = prefs.getBool('collect_health') ?? true;
         _weatherRegion = prefs.getString('weather_region') ?? 'Seoul';
       });
@@ -224,19 +224,9 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             },
           ),
           SwitchListTile(
-            secondary: const Icon(Icons.location_on),
-            title: const Text('위치'),
-            subtitle: const Text('일기 작성 시 위치 정보 수집'),
-            value: _collectLocation,
-            onChanged: (value) {
-               setState(() => _collectLocation = value);
-               _updateSetting('collect_location', value);
-            },
-          ),
-          SwitchListTile(
-            secondary: const Icon(Icons.directions_walk),
-            title: const Text('활동'),
-            subtitle: const Text('오늘의 걸음 수 수집'),
+            secondary: const Icon(Icons.monitor_heart),
+            title: const Text('오늘의 헬스정보'),
+            subtitle: const Text('걸음 수, 활동 시간, 칼로리 수집'),
             value: _collectHealth,
             onChanged: (value) {
                setState(() => _collectHealth = value);
@@ -378,6 +368,23 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           ],
         ),
         actions: [
+          TextButton.icon(
+            onPressed: () async {
+              final service = ref.read(locationServiceProvider);
+              final hasPermission = await service.requestPermission();
+              if (hasPermission) {
+                setState(() => _weatherRegion = '');
+                final prefs = await SharedPreferences.getInstance();
+                await prefs.setString('weather_region', '');
+                await service.init(); // fetch location
+                if (mounted) Navigator.pop(context);
+              } else {
+                await Geolocator.openAppSettings();
+              }
+            },
+            icon: const Icon(Icons.my_location, size: 16),
+            label: const Text('현재 위치 사용'),
+          ),
           TextButton(
             onPressed: () => Navigator.pop(context),
             child: const Text('취소'),

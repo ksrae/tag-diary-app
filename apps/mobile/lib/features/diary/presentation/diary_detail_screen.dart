@@ -308,26 +308,19 @@ class _DiaryDetailScreenState extends ConsumerState<DiaryDetailScreen> {
                         const SizedBox(height: 24),
                       ],
 
-                      // 6. Source Tags
-                      if (diary.sources.any((s) => !['steps', 'calendar', 'location'].contains(s.type))) ...[
-                        Text('출처', style: theme.textTheme.labelMedium?.copyWith(color: Colors.grey)),
+                      // 6. Tags
+                      if (diary.sources.any((s) => s.type == 'tag')) ...[
+                        Text('태그', style: theme.textTheme.labelMedium?.copyWith(color: Colors.grey)),
                         const SizedBox(height: 8),
                         Wrap(
                           spacing: 8,
                           runSpacing: 8,
                           children: diary.sources
-                              .where((s) => !['steps', 'calendar'].contains(s.type))
-                              .map((s) => s.appName)
-                              .toSet() // Deduplicate by appName
-                              .map((appName) {
-                                // Find first source with this appName to get icon/type
-                                final source = diary.sources.firstWhere((s) => s.appName == appName);
-                                return Chip(
-                                  avatar: Icon(_getSourceIcon(source.type), size: 16),
-                                  label: Text(source.appName),
-                                  visualDensity: VisualDensity.compact,
-                                );
-                              })
+                              .where((s) => s.type == 'tag')
+                              .map((s) => Chip(
+                                    label: Text('#${s.contentPreview}'),
+                                    visualDensity: VisualDensity.compact,
+                                  ))
                               .toList(),
                         ),
                         const SizedBox(height: 24),
