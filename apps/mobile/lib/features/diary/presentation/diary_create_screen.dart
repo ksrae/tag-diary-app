@@ -159,15 +159,17 @@ class _DiaryCreateScreenState extends ConsumerState<DiaryCreateScreen> {
     if (!mounted || assets.isEmpty) return;
     
     final List<SourceItem> newItems = [];
-    for (final asset in assets) {
+    for (int i = 0; i < assets.length; i++) {
+      final asset = assets[i];
       final file = await asset.file;
       if (file != null) {
+        // Select ALL photos by default (AI modal will limit to 3)
         newItems.add(SourceItem(
           DiarySource(
             type: 'photo',
             appName: '갤러리',
             contentPreview: '${asset.createDateTime.hour}:${asset.createDateTime.minute.toString().padLeft(2, '0')}',
-            selected: false,
+            selected: true,
           ),
           asset.createDateTime,
           imageFile: file,
@@ -610,26 +612,28 @@ class _DiaryCreateScreenState extends ConsumerState<DiaryCreateScreen> {
                   else
                     LayoutBuilder(
                       builder: (context, constraints) {
-                        const crossAxisCount = 3;
-                        const spacing = 8.0;
-                        final itemWidth = (constraints.maxWidth - (spacing * (crossAxisCount - 1))) / crossAxisCount;
+                        // Max item size 80px - will fit 4+ items on normal phones, more on wider screens
+                        const maxItemSize = 80.0;
+                        const spacing = 6.0;
                         
-                        // If items <= 3, show 1 row height. 
-                        // If items > 3, show 2 rows height (scrollable).
-                        final isSingleRow = _photoItems.length <= crossAxisCount;
-                        final height = isSingleRow 
-                            ? itemWidth 
-                            : (itemWidth * 2) + spacing;
+                        // Calculate how many items fit per row
+                        final itemsPerRow = (constraints.maxWidth / (maxItemSize + spacing)).floor().clamp(4, 10);
+                        final itemWidth = (constraints.maxWidth - (spacing * (itemsPerRow - 1))) / itemsPerRow;
+                        
+                        // Calculate rows needed (max 2 rows visible)
+                        final rowsNeeded = (_photoItems.length / itemsPerRow).ceil();
+                        final visibleRows = rowsNeeded.clamp(1, 2);
+                        final height = (itemWidth * visibleRows) + (spacing * (visibleRows - 1));
 
                         return SizedBox(
                           height: height,
                           child: GridView.builder(
                             padding: EdgeInsets.zero,
-                            physics: isSingleRow 
+                            physics: rowsNeeded <= 2 
                                 ? const NeverScrollableScrollPhysics() 
                                 : const ClampingScrollPhysics(),
-                            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                              crossAxisCount: crossAxisCount,
+                            gridDelegate: SliverGridDelegateWithMaxCrossAxisExtent(
+                              maxCrossAxisExtent: itemWidth,
                               mainAxisSpacing: spacing,
                               crossAxisSpacing: spacing,
                             ),
@@ -649,15 +653,15 @@ class _DiaryCreateScreenState extends ConsumerState<DiaryCreateScreen> {
                                   decoration: BoxDecoration(
                                     border: Border.all(
                                       color: isSelected ? Theme.of(context).colorScheme.primary : Colors.grey.shade300,
-                                      width: isSelected ? 3 : 1,
+                                      width: isSelected ? 2 : 1,
                                     ),
-                                    borderRadius: BorderRadius.circular(8),
+                                    borderRadius: BorderRadius.circular(6),
                                   ),
                                   child: Stack(
                                     fit: StackFit.expand,
                                     children: [
                                       ClipRRect(
-                                        borderRadius: BorderRadius.circular(6),
+                                        borderRadius: BorderRadius.circular(4),
                                         child: item.imageFile != null
                                             ? Image.file(item.imageFile!, fit: BoxFit.cover)
                                             : item.imagePath != null
@@ -666,15 +670,15 @@ class _DiaryCreateScreenState extends ConsumerState<DiaryCreateScreen> {
                                       ),
                                       if (isSelected)
                                         Positioned(
-                                          top: 4,
-                                          right: 4,
+                                          top: 2,
+                                          right: 2,
                                           child: Container(
                                             padding: const EdgeInsets.all(2),
                                             decoration: BoxDecoration(
                                               color: Theme.of(context).colorScheme.primary,
                                               shape: BoxShape.circle,
                                             ),
-                                            child: const Icon(Icons.check, size: 12, color: Colors.white),
+                                            child: const Icon(Icons.check, size: 10, color: Colors.white),
                                           ),
                                         ),
                                     ],

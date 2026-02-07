@@ -121,6 +121,15 @@ class DiaryCard extends StatelessWidget {
                         ),
                       ),
                       const Spacer(),
+                      // AI icon (if AI generated)
+                      if (diary.isAiGenerated) ...[
+                        Icon(
+                          Icons.auto_awesome,
+                          size: 16,
+                          color: theme.colorScheme.primary,
+                        ),
+                        const SizedBox(width: 6),
+                      ],
                       Text(
                         _getMoodEmoji(diary.mood),
                         style: const TextStyle(fontSize: 20),
@@ -150,12 +159,10 @@ class DiaryCard extends StatelessWidget {
                     style: theme.textTheme.bodyMedium,
                   ),
 
-                  const SizedBox(height: 12),
-
-                  // Tags only
+                  // Tags only (reduced spacing)
                   if (diary.sources.any((s) => s.type == 'tag'))
                     Padding(
-                      padding: const EdgeInsets.only(bottom: 8),
+                      padding: const EdgeInsets.only(top: 8),
                       child: Wrap(
                         spacing: 8,
                         runSpacing: 4,
@@ -177,28 +184,6 @@ class DiaryCard extends StatelessWidget {
                               );
                             })
                             .toList(),
-                      ),
-                    ),
-
-                  // AI generated badge
-                  if (diary.isAiGenerated)
-                    Padding(
-                      padding: const EdgeInsets.only(top: 8),
-                      child: Row(
-                        children: [
-                          Icon(
-                            Icons.auto_awesome,
-                            size: 14,
-                            color: theme.colorScheme.primary,
-                          ),
-                          const SizedBox(width: 4),
-                          Text(
-                            'AI 작성',
-                            style: theme.textTheme.labelSmall?.copyWith(
-                              color: theme.colorScheme.primary,
-                            ),
-                          ),
-                        ],
                       ),
                     ),
                 ],
