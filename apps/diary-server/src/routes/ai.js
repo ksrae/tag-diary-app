@@ -10,9 +10,9 @@ aiRouter.post("/generate", async (req, res) => {
     const { prompt, mood, weather, sources, images } = req.body;
 
     // === DEV_BYPASS_START ===
-    // Check Pro status (skip in development mode)
-    const isDev = process.env.NODE_ENV !== 'production';
-    if (!isDev) {
+    // Check Pro status (skip when SKIP_AUTH=true)
+    const skipAuth = process.env.SKIP_AUTH === 'true';
+    if (!skipAuth) {
     // === DEV_BYPASS_END ===
       const userInfo = await getUserInfo(req.user.user_id, req.headers.authorization.split(" ")[1]);
       if (!userInfo || !userInfo.is_pro) {
@@ -43,9 +43,9 @@ aiRouter.post("/regenerate", async (req, res) => {
       : prompt;
 
     // === DEV_BYPASS_START ===
-    // Check Pro status (skip in development mode)
-    const isDev = process.env.NODE_ENV !== 'production';
-    if (!isDev) {
+    // Check Pro status (skip when SKIP_AUTH=true)
+    const skipAuth = process.env.SKIP_AUTH === 'true';
+    if (!skipAuth) {
     // === DEV_BYPASS_END ===
       const userInfo = await getUserInfo(req.user.user_id, req.headers.authorization.split(" ")[1]);
       if (!userInfo || !userInfo.is_pro) {

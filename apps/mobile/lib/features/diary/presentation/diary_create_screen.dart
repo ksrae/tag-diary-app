@@ -686,28 +686,6 @@ class _DiaryCreateScreenState extends ConsumerState<DiaryCreateScreen> {
                         );
                       },
                     ),
-                                      if (isSelected)
-                                        Positioned(
-                                          top: 4,
-                                          right: 4,
-                                          child: Container(
-                                            padding: const EdgeInsets.all(2),
-                                            decoration: BoxDecoration(
-                                              color: Theme.of(context).colorScheme.primary,
-                                              shape: BoxShape.circle,
-                                            ),
-                                            child: const Icon(Icons.check, size: 12, color: Colors.white),
-                                          ),
-                                        ),
-                                    ],
-                                  ),
-                                ),
-                              );
-                            },
-                          ),
-                        );
-                      },
-                    ),
 
                   const SizedBox(height: 24),
 

@@ -11,9 +11,9 @@ import { compactDecrypt } from "jose";
  */
 export const authMiddleware = async (req, res, next) => {
   // === DEV_BYPASS_START ===
-  // Skip authentication in development mode for testing
-  if (process.env.NODE_ENV !== 'production') {
-    console.log('[DEV] Skipping authentication in development mode');
+  // Skip authentication when SKIP_AUTH=true (for testing on Vercel)
+  if (process.env.SKIP_AUTH === 'true') {
+    console.log('[DEV] Skipping authentication (SKIP_AUTH=true)');
     req.user = {
       user_id: 'dev-test-user',
       token_type: 'access',
