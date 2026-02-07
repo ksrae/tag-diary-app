@@ -126,3 +126,49 @@ mise run db:migrate
 1.  **Connection Timeout**: 다이어리 서버(터미널 2)가 실행 중인지 확인하세요.
 2.  **Address already in use**: `lsof -i :8000` 또는 `lsof -i :3001`로 확인 후 프로세스를 종료하세요.
 3.  **mise: command not found**: `source ~/.zshrc`를 입력하세요.
+
+---
+
+## 5. Git 배포
+
+코드 변경 후 GitHub에 푸시하면 Vercel이 자동으로 배포합니다.
+
+### **모든 변경사항 커밋 & 푸시**
+```bash
+# 프로젝트 루트에서 실행
+git add -A
+git commit -m "feat: 변경 내용 설명"
+git push origin main
+```
+
+### **특정 파일만 커밋**
+```bash
+git add apps/diary-server/
+git commit -m "fix: diary server bug fix"
+git push origin main
+```
+
+---
+
+## 6. Vercel 배포 (다이어리 서버)
+
+Vercel과 GitHub이 연결되어 있으면 `main` 브랜치에 푸시할 때마다 자동 배포됩니다.
+
+### **Vercel 설정 (최초 1회)**
+1. [Vercel Dashboard](https://vercel.com) → New Project
+2. GitHub 저장소 연결
+3. 설정:
+   - **Framework Preset**: Express
+   - **Root Directory**: `apps/diary-server`
+4. **Environment Variables**:
+   - `GEMINI_API_KEY`: Gemini API 키
+   - `NODE_ENV`: `production`
+
+### **수동 배포 (Vercel CLI)**
+```bash
+cd apps/diary-server
+npx vercel --prod
+```
+
+### **배포 후 모바일 앱 URL 업데이트**
+Vercel 배포 URL을 받으면 `apps/mobile/lib/features/ai/application/ai_service.dart`에서 서버 URL을 업데이트하세요.
