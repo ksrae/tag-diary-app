@@ -6,8 +6,8 @@ part of 'health_response.dart';
 // JsonSerializableGenerator
 // **************************************************************************
 
-_HealthResponse _$HealthResponseFromJson(Map<String, dynamic> json) =>
-    _HealthResponse(
+_$HealthResponseImpl _$$HealthResponseImplFromJson(Map<String, dynamic> json) =>
+    _$HealthResponseImpl(
       status: HealthResponseStatus.fromJson(json['status'] as String),
       services: (json['services'] as Map<String, dynamic>).map(
         (k, e) =>
@@ -16,7 +16,8 @@ _HealthResponse _$HealthResponseFromJson(Map<String, dynamic> json) =>
       version: json['version'] as String? ?? '0.1.0',
     );
 
-Map<String, dynamic> _$HealthResponseToJson(_HealthResponse instance) =>
+Map<String, dynamic> _$$HealthResponseImplToJson(
+        _$HealthResponseImpl instance) =>
     <String, dynamic>{
       'status': _$HealthResponseStatusEnumMap[instance.status]!,
       'services': instance.services,

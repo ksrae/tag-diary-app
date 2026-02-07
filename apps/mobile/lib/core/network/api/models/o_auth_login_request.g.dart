@@ -6,15 +6,17 @@ part of 'o_auth_login_request.dart';
 // JsonSerializableGenerator
 // **************************************************************************
 
-_OAuthLoginRequest _$OAuthLoginRequestFromJson(Map<String, dynamic> json) =>
-    _OAuthLoginRequest(
+_$OAuthLoginRequestImpl _$$OAuthLoginRequestImplFromJson(
+        Map<String, dynamic> json) =>
+    _$OAuthLoginRequestImpl(
       provider: OAuthLoginRequestProvider.fromJson(json['provider'] as String),
       accessToken: json['access_token'] as String,
       email: json['email'] as String,
       name: json['name'] as String?,
     );
 
-Map<String, dynamic> _$OAuthLoginRequestToJson(_OAuthLoginRequest instance) =>
+Map<String, dynamic> _$$OAuthLoginRequestImplToJson(
+        _$OAuthLoginRequestImpl instance) =>
     <String, dynamic>{
       'provider': _$OAuthLoginRequestProviderEnumMap[instance.provider]!,
       'access_token': instance.accessToken,

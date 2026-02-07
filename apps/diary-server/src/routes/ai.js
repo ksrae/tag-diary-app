@@ -1,0 +1,44 @@
+import { Router } from "express";
+import { generateDiary } from "../lib/gemini.js";
+
+export const aiRouter = Router();
+
+// Generate diary content using AI
+aiRouter.post("/generate", async (req, res) => {
+  try {
+    const { prompt, mood, weather, sources, images } = req.body;
+
+    // Generate diary content using Gemini
+    const content = await generateDiary({ prompt, mood, weather, sources, images });
+
+    res.json({ content });
+  } catch (error) {
+    console.error("Error generating diary:", error);
+    res.status(500).json({ error: "Failed to generate diary via Gemini" });
+  }
+});
+
+// Regenerate diary content
+aiRouter.post("/regenerate", async (req, res) => {
+  try {
+    const { prompt, mood, weather, sources, previous_content, images } = req.body;
+
+    // Generate with context of previous content
+    const enhancedPrompt = previous_content 
+      ? `이전 내용을 참고하되 다른 방식으로 작성해주세요. 이전 내용: ${previous_content}\n\n새 요청: ${prompt}`
+      : prompt;
+
+    const content = await generateDiary({ 
+      prompt: enhancedPrompt, 
+      mood, 
+      weather, 
+      sources,
+      images
+    });
+
+    res.json({ content });
+  } catch (error) {
+    console.error("Error regenerating diary:", error);
+    res.status(500).json({ error: "Failed to regenerate diary via Gemini" });
+  }
+});

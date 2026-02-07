@@ -1,6 +1,6 @@
 // This is a generated file; do not edit or check into version control.
-FLUTTER_ROOT=/Users/gracefullight/.local/share/mise/installs/flutter/3.38.5-stable
-FLUTTER_APPLICATION_PATH=/Users/gracefullight/workspace/fullstack-starter/apps/mobile
+FLUTTER_ROOT=/Users/sungraekim/.local/share/mise/http-tarballs/a0cf4eebdb9da1eaa978db0fd4ded600de75d8b3e4f14b07d85a51670e4a21a9
+FLUTTER_APPLICATION_PATH=/Users/sungraekim/workspace/agent/fullstack-starter/apps/mobile
 COCOAPODS_PARALLEL_CODE_SIGN=true
 FLUTTER_TARGET=lib/main.dart
 FLUTTER_BUILD_DIR=build
