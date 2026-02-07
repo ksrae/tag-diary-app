@@ -608,65 +608,105 @@ class _DiaryCreateScreenState extends ConsumerState<DiaryCreateScreen> {
                       ),
                     )
                   else
-                    SizedBox(
-                      height: 160,
-                      child: GridView.builder(
-                        scrollDirection: Axis.horizontal,
-                        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                          crossAxisCount: 2,
-                          mainAxisSpacing: 8,
-                          crossAxisSpacing: 8,
-                        ),
-                        itemCount: _photoItems.length,
-                        itemBuilder: (context, index) {
-                          final item = _photoItems[index];
-                          final isSelected = item.source.selected;
-                          return GestureDetector(
-                            onTap: () {
-                              setState(() {
-                                _photoItems[index] = item.copyWith(
-                                  source: item.source.copyWith(selected: !isSelected),
-                                );
-                              });
-                            },
-                            child: Container(
-                              decoration: BoxDecoration(
-                                border: Border.all(
-                                  color: isSelected ? Theme.of(context).colorScheme.primary : Colors.grey.shade300,
-                                  width: isSelected ? 3 : 1,
-                                ),
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                              child: Stack(
-                                fit: StackFit.expand,
-                                children: [
-                                  ClipRRect(
-                                    borderRadius: BorderRadius.circular(6),
-                                    child: item.imageFile != null
-                                        ? Image.file(item.imageFile!, fit: BoxFit.cover)
-                                        : item.imagePath != null
-                                            ? Image.file(File(item.imagePath!), fit: BoxFit.cover)
-                                            : const Icon(Icons.image),
-                                  ),
-                                  if (isSelected)
-                                    Positioned(
-                                      top: 4,
-                                      right: 4,
-                                      child: Container(
-                                        padding: const EdgeInsets.all(2),
-                                        decoration: BoxDecoration(
-                                          color: Theme.of(context).colorScheme.primary,
-                                          shape: BoxShape.circle,
-                                        ),
-                                        child: const Icon(Icons.check, size: 12, color: Colors.white),
-                                      ),
-                                    ),
-                                ],
-                              ),
+                    LayoutBuilder(
+                      builder: (context, constraints) {
+                        const crossAxisCount = 3;
+                        const spacing = 8.0;
+                        final itemWidth = (constraints.maxWidth - (spacing * (crossAxisCount - 1))) / crossAxisCount;
+                        
+                        // If items <= 3, show 1 row height. 
+                        // If items > 3, show 2 rows height (scrollable).
+                        final isSingleRow = _photoItems.length <= crossAxisCount;
+                        final height = isSingleRow 
+                            ? itemWidth 
+                            : (itemWidth * 2) + spacing;
+
+                        return SizedBox(
+                          height: height,
+                          child: GridView.builder(
+                            padding: EdgeInsets.zero,
+                            physics: isSingleRow 
+                                ? const NeverScrollableScrollPhysics() 
+                                : const ClampingScrollPhysics(),
+                            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                              crossAxisCount: crossAxisCount,
+                              mainAxisSpacing: spacing,
+                              crossAxisSpacing: spacing,
                             ),
-                          );
-                        },
-                      ),
+                            itemCount: _photoItems.length,
+                            itemBuilder: (context, index) {
+                              final item = _photoItems[index];
+                              final isSelected = item.source.selected;
+                              return GestureDetector(
+                                onTap: () {
+                                  setState(() {
+                                    _photoItems[index] = item.copyWith(
+                                      source: item.source.copyWith(selected: !isSelected),
+                                    );
+                                  });
+                                },
+                                child: Container(
+                                  decoration: BoxDecoration(
+                                    border: Border.all(
+                                      color: isSelected ? Theme.of(context).colorScheme.primary : Colors.grey.shade300,
+                                      width: isSelected ? 3 : 1,
+                                    ),
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                  child: Stack(
+                                    fit: StackFit.expand,
+                                    children: [
+                                      ClipRRect(
+                                        borderRadius: BorderRadius.circular(6),
+                                        child: item.imageFile != null
+                                            ? Image.file(item.imageFile!, fit: BoxFit.cover)
+                                            : item.imagePath != null
+                                                ? Image.file(File(item.imagePath!), fit: BoxFit.cover)
+                                                : const Icon(Icons.image),
+                                      ),
+                                      if (isSelected)
+                                        Positioned(
+                                          top: 4,
+                                          right: 4,
+                                          child: Container(
+                                            padding: const EdgeInsets.all(2),
+                                            decoration: BoxDecoration(
+                                              color: Theme.of(context).colorScheme.primary,
+                                              shape: BoxShape.circle,
+                                            ),
+                                            child: const Icon(Icons.check, size: 12, color: Colors.white),
+                                          ),
+                                        ),
+                                    ],
+                                  ),
+                                ),
+                              );
+                            },
+                          ),
+                        );
+                      },
+                    ),
+                                      if (isSelected)
+                                        Positioned(
+                                          top: 4,
+                                          right: 4,
+                                          child: Container(
+                                            padding: const EdgeInsets.all(2),
+                                            decoration: BoxDecoration(
+                                              color: Theme.of(context).colorScheme.primary,
+                                              shape: BoxShape.circle,
+                                            ),
+                                            child: const Icon(Icons.check, size: 12, color: Colors.white),
+                                          ),
+                                        ),
+                                    ],
+                                  ),
+                                ),
+                              );
+                            },
+                          ),
+                        );
+                      },
                     ),
 
                   const SizedBox(height: 24),
