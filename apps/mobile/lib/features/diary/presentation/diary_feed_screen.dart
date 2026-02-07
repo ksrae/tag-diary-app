@@ -17,6 +17,7 @@ class DiaryFeedScreen extends ConsumerStatefulWidget {
 
 class _DiaryFeedScreenState extends ConsumerState<DiaryFeedScreen> {
   bool _showCalendar = false;
+  String? _selectedTag;
 
   @override
   Widget build(BuildContext context) {
@@ -70,10 +71,60 @@ class _DiaryFeedScreenState extends ConsumerState<DiaryFeedScreen> {
                     loading: () => const SliverToBoxAdapter(child: SizedBox.shrink()),
                     error: (_, __) => const SliverToBoxAdapter(child: SizedBox.shrink()),
                   ),
+
+                  // Tag Filter Bar
+                  diariesAsync.when(
+                    data: (diaries) {
+                      final allTags = diaries
+                          .expand((d) => d.sources)
+                          .where((s) => s.type == 'tag')
+                          .map((s) => s.contentPreview)
+                          .toSet()
+                          .toList();
+                      
+                      if (allTags.isEmpty) return const SliverToBoxAdapter(child: SizedBox.shrink());
+
+                      return SliverToBoxAdapter(
+                        child: Container(
+                          height: 50,
+                          padding: const EdgeInsets.symmetric(vertical: 8),
+                          child: ListView(
+                            scrollDirection: Axis.horizontal,
+                            padding: const EdgeInsets.symmetric(horizontal: 16),
+                            children: [
+                              Padding(
+                                padding: const EdgeInsets.only(right: 8),
+                                child: FilterChip(
+                                  label: const Text('전체'),
+                                  selected: _selectedTag == null,
+                                  onSelected: (selected) => setState(() => _selectedTag = null),
+                                ),
+                              ),
+                              ...allTags.map((tag) => Padding(
+                                padding: const EdgeInsets.only(right: 8),
+                                child: FilterChip(
+                                  label: Text('#$tag'),
+                                  selected: _selectedTag == tag,
+                                  onSelected: (selected) => setState(() => _selectedTag = selected ? tag : null),
+                                ),
+                              )),
+                            ],
+                          ),
+                        ),
+                      );
+                    },
+                    loading: () => const SliverToBoxAdapter(child: SizedBox.shrink()),
+                    error: (_, __) => const SliverToBoxAdapter(child: SizedBox.shrink()),
+                  ),
       
                   // 일기 피드
                   diariesAsync.when(
-                    data: (diaries) => diaries.isEmpty
+                    data: (diaries) {
+                      final filteredDiaries = _selectedTag == null 
+                          ? diaries 
+                          : diaries.where((d) => d.sources.any((s) => s.type == 'tag' && s.contentPreview == _selectedTag)).toList();
+
+                      return filteredDiaries.isEmpty
                         ? SliverFillRemaining(
                             child: Center(
                               child: Column(
@@ -86,7 +137,7 @@ class _DiaryFeedScreenState extends ConsumerState<DiaryFeedScreen> {
                                   ),
                                   const SizedBox(height: 16),
                                   Text(
-                                    '선택한 기간에 일기가 없어요',
+                                    _selectedTag != null ? '#$_selectedTag 태그의 일기가 없어요' : '선택한 기간에 일기가 없어요',
                                     style: Theme.of(context).textTheme.titleMedium?.copyWith(
                                           color: Theme.of(context).colorScheme.outline,
                                         ),
@@ -110,15 +161,16 @@ class _DiaryFeedScreenState extends ConsumerState<DiaryFeedScreen> {
                                   return Padding(
                                     padding: const EdgeInsets.only(bottom: 16),
                                     child: DiaryCard(
-                                      diary: diaries[index],
-                                      onTap: () => context.push('/diary/${diaries[index].id}'),
+                                      diary: filteredDiaries[index],
+                                      onTap: () => context.push('/diary/${filteredDiaries[index].id}'),
                                     ),
                                   );
                                 },
-                                childCount: diaries.length,
+                                childCount: filteredDiaries.length,
                               ),
                             ),
-                          ),
+                          );
+                    },
                     loading: () => const SliverFillRemaining(
                       child: Center(child: CircularProgressIndicator()),
                     ),

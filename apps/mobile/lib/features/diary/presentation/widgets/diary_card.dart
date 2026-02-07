@@ -152,29 +152,32 @@ class DiaryCard extends StatelessWidget {
 
                   const SizedBox(height: 12),
 
-                  // Source tags
-                  if (diary.sources.isNotEmpty)
-                    Wrap(
-                      spacing: 8,
-                      runSpacing: 4,
-                      children: diary.sources
-                          .where((s) => s.selected)
-                          .map((s) => s.appName)
-                          .toSet() // Deduplicate by appName
-                          .map((appName) {
-                            final source = diary.sources.firstWhere((s) => s.appName == appName);
-                            return Chip(
-                              avatar: Icon(_getSourceIcon(source.type), size: 14),
-                              label: Text(
-                                appName,
-                                style: theme.textTheme.labelSmall,
-                              ),
-                              padding: EdgeInsets.zero,
-                              materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                              visualDensity: VisualDensity.compact,
-                            );
-                          })
-                          .toList(),
+                  // Tags only
+                  if (diary.sources.any((s) => s.type == 'tag'))
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 8),
+                      child: Wrap(
+                        spacing: 8,
+                        runSpacing: 4,
+                        children: diary.sources
+                            .where((s) => s.type == 'tag')
+                            .map((s) => s.contentPreview) // Content preview holds the tag name
+                            .toSet() 
+                            .map((tagName) {
+                              return Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                decoration: BoxDecoration(
+                                  color: theme.colorScheme.surfaceContainerHighest,
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                child: Text(
+                                  '#$tagName',
+                                  style: theme.textTheme.labelSmall,
+                                ),
+                              );
+                            })
+                            .toList(),
+                      ),
                     ),
 
                   // AI generated badge

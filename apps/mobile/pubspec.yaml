@@ -58,7 +58,26 @@ dev_dependencies:
   mocktail: ^1.0.3
   riverpod_generator: ^2.4.0
   very_good_analysis: ^6.0.0
+  flutter_launcher_icons: ^0.13.1
+  flutter_native_splash: ^2.4.0
+
+flutter_launcher_icons:
+  android: "launcher_icon"
+  ios: false
+  image_path: "assets/icon.png"
+  min_sdk_android: 21
+
+flutter_native_splash:
+  android: true
+  ios: false
+  color: "#311B92"
+  image: "assets/splash.png"
+  android_12:
+    image: "assets/splash.png"
+    color: "#311B92"
 
 flutter:
   generate: true
   uses-material-design: true
+  assets:
+    - assets/
