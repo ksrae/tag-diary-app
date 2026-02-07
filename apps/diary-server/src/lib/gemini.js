@@ -23,25 +23,23 @@ const PROMPTS = {
        - Do NOT create names, relationships, backstories, or details not present in the photo(s) or "additional_text."
        - Only describe what is explicitly mentioned in "additional_text" or visible in the photo(s).
     
-    3. **Start with the Date**:
-       - Use the date from the photo’s metadata exactly. If no date is available, state this but do NOT guess.
-    
-    4. **Describe the Scene**:
+    3. **Describe the Scene**:
        - Use sensory details (sights, sounds, smells, feelings) to describe what is visible in the photo(s) or aligns with "additional_text."
        - Avoid adding any elements or assumptions not present in the source material.
     
-    5. **Express Personal Thoughts and Emotions**:
+    4. **Express Personal Thoughts and Emotions**:
        - Share genuine feelings or reflections sparked by the photo(s) and "additional_text."
        - Write authentically, as if in a private journal, keeping the tone natural and personal.
     
-    6. **Avoid Analysis or Assumptions**:
+    5. **Avoid Analysis or Assumptions**:
        - Do NOT analyze or interpret beyond the visible or mentioned details.
        - Stick strictly to the provided context.
     
-    7. **Keep it Short and Authentic**:
-       - Aim for about 10 sentences that reflect personal experience and emotion, staying rooted in the photo and "additional_text."
+    6. **Keep it Short and Authentic**:
+       - If SNS style is requested, write 2-3 short sentences with hashtags.
+       - Otherwise, aim for about 5-7 sentences that reflect personal experience and emotion.
 
-    8. **Remove unrelated words**
+    7. **Remove unrelated words**
        - Do not write unrelated with contents of diary.
        `,
   },
@@ -59,25 +57,23 @@ const PROMPTS = {
        - 사진이나 "additional_text"에 없는 이름, 관계, 배경 이야기를 만들지 마세요.
        - "additional_text"와 사진에서 명확히 확인할 수 있는 정보만 사용하세요.
     
-    3. **날짜로 시작**:
-       - 사진의 메타데이터에서 날짜를 그대로 사용하세요. 날짜 정보가 없으면 그 사실을 명시하되, 절대 추측하지 마세요.
-    
-    4. **장면 묘사**:
+    3. **장면 묘사**:
        - 사진에 보이거나 "additional_text"와 일치하는 요소(배경, 인물, 사물, 활동)를 중심으로 묘사하세요.
        - 시각, 소리, 냄새, 감촉 등 감각적인 디테일을 활용하세요.
     
-    5. **개인적인 생각과 감정 표현**:
+    4. **개인적인 생각과 감정 표현**:
        - 사진과 "additional_text"에서 느낀 감정이나 떠오르는 생각을 진솔하게 적으세요.
        - 사진에 없는 정보를 추가하지 말고, 자연스럽고 진실된 어조로 작성하세요.
     
-    6. **분석이나 추측 금지**:
+    5. **분석이나 추측 금지**:
        - 사진과 "additional_text"를 분석하거나 가정하지 말고, 외부적인 해석은 피하세요.
        - 주어진 맥락에서만 글을 작성하세요.
     
-    7. **짧고 진솔하게**:
-       - 대략 10 문장으로 요약하며 개인의 경험과 감정에만 집중하세요.
+    6. **글 길이 조절**:
+       - SNS 스타일 요청 시: 2-3문장으로 짧게 작성하고 해시태그를 포함하세요.
+       - 일반 스타일: 5-7문장으로 개인의 경험과 감정에 집중하세요.
 
-    8. **필요 없는 내용은 생략**
+    7. **필요 없는 내용은 생략**
        - 일기의 내용과 관계 없는 내용은 작성하지 마세요.
        `,
   }
