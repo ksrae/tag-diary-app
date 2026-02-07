@@ -7,3 +7,5 @@ Automatically deployed to Vercel via GitHub Actions.
 
 ## API Documentation
 This server acts as a proxy for the Gemini API.
+
+<!-- Trigger deployment: path fix -->
