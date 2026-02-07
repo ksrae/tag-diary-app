@@ -1,5 +1,5 @@
-// GENERATED CODE - DO NOT MODIFY BY HAND
 // coverage:ignore-file
+// GENERATED CODE - DO NOT MODIFY BY HAND
 // ignore_for_file: type=lint
 // ignore_for_file: unused_element, deprecated_member_use, deprecated_member_use_from_same_package, use_function_type_syntax_for_parameters, unnecessary_const, avoid_init_to_null, invalid_override_different_default_values_named, prefer_expression_function_bodies, annotate_overrides, invalid_annotation_target, unnecessary_question_mark
 
@@ -9,277 +9,154 @@ part of 'http_validation_error.dart';
 // FreezedGenerator
 // **************************************************************************
 
-// dart format off
 T _$identity<T>(T value) => value;
+
+final _privateConstructorUsedError = UnsupportedError(
+    'It seems like you constructed your class using `MyClass._()`. This constructor is only meant to be used by freezed and you are not supposed to need it nor use it.\nPlease check the documentation here for more information: https://github.com/rrousselGit/freezed#adding-getters-and-methods-to-our-models');
+
+HttpValidationError _$HttpValidationErrorFromJson(Map<String, dynamic> json) {
+  return _HttpValidationError.fromJson(json);
+}
 
 /// @nodoc
 mixin _$HttpValidationError {
+  List<ValidationError>? get detail => throw _privateConstructorUsedError;
 
- List<ValidationError>? get detail;
-/// Create a copy of HttpValidationError
-/// with the given fields replaced by the non-null parameter values.
-@JsonKey(includeFromJson: false, includeToJson: false)
-@pragma('vm:prefer-inline')
-$HttpValidationErrorCopyWith<HttpValidationError> get copyWith => _$HttpValidationErrorCopyWithImpl<HttpValidationError>(this as HttpValidationError, _$identity);
-
-  /// Serializes this HttpValidationError to a JSON map.
-  Map<String, dynamic> toJson();
-
-
-@override
-bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is HttpValidationError&&const DeepCollectionEquality().equals(other.detail, detail));
-}
-
-@JsonKey(includeFromJson: false, includeToJson: false)
-@override
-int get hashCode => Object.hash(runtimeType,const DeepCollectionEquality().hash(detail));
-
-@override
-String toString() {
-  return 'HttpValidationError(detail: $detail)';
-}
-
-
+  Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
+  @JsonKey(ignore: true)
+  $HttpValidationErrorCopyWith<HttpValidationError> get copyWith =>
+      throw _privateConstructorUsedError;
 }
 
 /// @nodoc
-abstract mixin class $HttpValidationErrorCopyWith<$Res>  {
-  factory $HttpValidationErrorCopyWith(HttpValidationError value, $Res Function(HttpValidationError) _then) = _$HttpValidationErrorCopyWithImpl;
-@useResult
-$Res call({
- List<ValidationError>? detail
-});
-
-
-
-
+abstract class $HttpValidationErrorCopyWith<$Res> {
+  factory $HttpValidationErrorCopyWith(
+          HttpValidationError value, $Res Function(HttpValidationError) then) =
+      _$HttpValidationErrorCopyWithImpl<$Res, HttpValidationError>;
+  @useResult
+  $Res call({List<ValidationError>? detail});
 }
+
 /// @nodoc
-class _$HttpValidationErrorCopyWithImpl<$Res>
+class _$HttpValidationErrorCopyWithImpl<$Res, $Val extends HttpValidationError>
     implements $HttpValidationErrorCopyWith<$Res> {
-  _$HttpValidationErrorCopyWithImpl(this._self, this._then);
+  _$HttpValidationErrorCopyWithImpl(this._value, this._then);
 
-  final HttpValidationError _self;
-  final $Res Function(HttpValidationError) _then;
+  // ignore: unused_field
+  final $Val _value;
+  // ignore: unused_field
+  final $Res Function($Val) _then;
 
-/// Create a copy of HttpValidationError
-/// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? detail = freezed,}) {
-  return _then(_self.copyWith(
-detail: freezed == detail ? _self.detail : detail // ignore: cast_nullable_to_non_nullable
-as List<ValidationError>?,
-  ));
+  @pragma('vm:prefer-inline')
+  @override
+  $Res call({
+    Object? detail = freezed,
+  }) {
+    return _then(_value.copyWith(
+      detail: freezed == detail
+          ? _value.detail
+          : detail // ignore: cast_nullable_to_non_nullable
+              as List<ValidationError>?,
+    ) as $Val);
+  }
 }
 
+/// @nodoc
+abstract class _$$HttpValidationErrorImplCopyWith<$Res>
+    implements $HttpValidationErrorCopyWith<$Res> {
+  factory _$$HttpValidationErrorImplCopyWith(_$HttpValidationErrorImpl value,
+          $Res Function(_$HttpValidationErrorImpl) then) =
+      __$$HttpValidationErrorImplCopyWithImpl<$Res>;
+  @override
+  @useResult
+  $Res call({List<ValidationError>? detail});
 }
 
+/// @nodoc
+class __$$HttpValidationErrorImplCopyWithImpl<$Res>
+    extends _$HttpValidationErrorCopyWithImpl<$Res, _$HttpValidationErrorImpl>
+    implements _$$HttpValidationErrorImplCopyWith<$Res> {
+  __$$HttpValidationErrorImplCopyWithImpl(_$HttpValidationErrorImpl _value,
+      $Res Function(_$HttpValidationErrorImpl) _then)
+      : super(_value, _then);
 
-/// Adds pattern-matching-related methods to [HttpValidationError].
-extension HttpValidationErrorPatterns on HttpValidationError {
-/// A variant of `map` that fallback to returning `orElse`.
-///
-/// It is equivalent to doing:
-/// ```dart
-/// switch (sealedClass) {
-///   case final Subclass value:
-///     return ...;
-///   case _:
-///     return orElse();
-/// }
-/// ```
-
-@optionalTypeArgs TResult maybeMap<TResult extends Object?>(TResult Function( _HttpValidationError value)?  $default,{required TResult orElse(),}){
-final _that = this;
-switch (_that) {
-case _HttpValidationError() when $default != null:
-return $default(_that);case _:
-  return orElse();
-
-}
-}
-/// A `switch`-like method, using callbacks.
-///
-/// Callbacks receives the raw object, upcasted.
-/// It is equivalent to doing:
-/// ```dart
-/// switch (sealedClass) {
-///   case final Subclass value:
-///     return ...;
-///   case final Subclass2 value:
-///     return ...;
-/// }
-/// ```
-
-@optionalTypeArgs TResult map<TResult extends Object?>(TResult Function( _HttpValidationError value)  $default,){
-final _that = this;
-switch (_that) {
-case _HttpValidationError():
-return $default(_that);case _:
-  throw StateError('Unexpected subclass');
-
-}
-}
-/// A variant of `map` that fallback to returning `null`.
-///
-/// It is equivalent to doing:
-/// ```dart
-/// switch (sealedClass) {
-///   case final Subclass value:
-///     return ...;
-///   case _:
-///     return null;
-/// }
-/// ```
-
-@optionalTypeArgs TResult? mapOrNull<TResult extends Object?>(TResult? Function( _HttpValidationError value)?  $default,){
-final _that = this;
-switch (_that) {
-case _HttpValidationError() when $default != null:
-return $default(_that);case _:
-  return null;
-
-}
-}
-/// A variant of `when` that fallback to an `orElse` callback.
-///
-/// It is equivalent to doing:
-/// ```dart
-/// switch (sealedClass) {
-///   case Subclass(:final field):
-///     return ...;
-///   case _:
-///     return orElse();
-/// }
-/// ```
-
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( List<ValidationError>? detail)?  $default,{required TResult orElse(),}) {final _that = this;
-switch (_that) {
-case _HttpValidationError() when $default != null:
-return $default(_that.detail);case _:
-  return orElse();
-
-}
-}
-/// A `switch`-like method, using callbacks.
-///
-/// As opposed to `map`, this offers destructuring.
-/// It is equivalent to doing:
-/// ```dart
-/// switch (sealedClass) {
-///   case Subclass(:final field):
-///     return ...;
-///   case Subclass2(:final field2):
-///     return ...;
-/// }
-/// ```
-
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( List<ValidationError>? detail)  $default,) {final _that = this;
-switch (_that) {
-case _HttpValidationError():
-return $default(_that.detail);case _:
-  throw StateError('Unexpected subclass');
-
-}
-}
-/// A variant of `when` that fallback to returning `null`
-///
-/// It is equivalent to doing:
-/// ```dart
-/// switch (sealedClass) {
-///   case Subclass(:final field):
-///     return ...;
-///   case _:
-///     return null;
-/// }
-/// ```
-
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( List<ValidationError>? detail)?  $default,) {final _that = this;
-switch (_that) {
-case _HttpValidationError() when $default != null:
-return $default(_that.detail);case _:
-  return null;
-
-}
-}
-
+  @pragma('vm:prefer-inline')
+  @override
+  $Res call({
+    Object? detail = freezed,
+  }) {
+    return _then(_$HttpValidationErrorImpl(
+      detail: freezed == detail
+          ? _value._detail
+          : detail // ignore: cast_nullable_to_non_nullable
+              as List<ValidationError>?,
+    ));
+  }
 }
 
 /// @nodoc
 @JsonSerializable()
+class _$HttpValidationErrorImpl implements _HttpValidationError {
+  const _$HttpValidationErrorImpl({final List<ValidationError>? detail})
+      : _detail = detail;
 
-class _HttpValidationError implements HttpValidationError {
-  const _HttpValidationError({final  List<ValidationError>? detail}): _detail = detail;
-  factory _HttpValidationError.fromJson(Map<String, dynamic> json) => _$HttpValidationErrorFromJson(json);
+  factory _$HttpValidationErrorImpl.fromJson(Map<String, dynamic> json) =>
+      _$$HttpValidationErrorImplFromJson(json);
 
- final  List<ValidationError>? _detail;
-@override List<ValidationError>? get detail {
-  final value = _detail;
-  if (value == null) return null;
-  if (_detail is EqualUnmodifiableListView) return _detail;
-  // ignore: implicit_dynamic_type
-  return EqualUnmodifiableListView(value);
+  final List<ValidationError>? _detail;
+  @override
+  List<ValidationError>? get detail {
+    final value = _detail;
+    if (value == null) return null;
+    if (_detail is EqualUnmodifiableListView) return _detail;
+    // ignore: implicit_dynamic_type
+    return EqualUnmodifiableListView(value);
+  }
+
+  @override
+  String toString() {
+    return 'HttpValidationError(detail: $detail)';
+  }
+
+  @override
+  bool operator ==(Object other) {
+    return identical(this, other) ||
+        (other.runtimeType == runtimeType &&
+            other is _$HttpValidationErrorImpl &&
+            const DeepCollectionEquality().equals(other._detail, _detail));
+  }
+
+  @JsonKey(ignore: true)
+  @override
+  int get hashCode =>
+      Object.hash(runtimeType, const DeepCollectionEquality().hash(_detail));
+
+  @JsonKey(ignore: true)
+  @override
+  @pragma('vm:prefer-inline')
+  _$$HttpValidationErrorImplCopyWith<_$HttpValidationErrorImpl> get copyWith =>
+      __$$HttpValidationErrorImplCopyWithImpl<_$HttpValidationErrorImpl>(
+          this, _$identity);
+
+  @override
+  Map<String, dynamic> toJson() {
+    return _$$HttpValidationErrorImplToJson(
+      this,
+    );
+  }
 }
 
+abstract class _HttpValidationError implements HttpValidationError {
+  const factory _HttpValidationError({final List<ValidationError>? detail}) =
+      _$HttpValidationErrorImpl;
 
-/// Create a copy of HttpValidationError
-/// with the given fields replaced by the non-null parameter values.
-@override @JsonKey(includeFromJson: false, includeToJson: false)
-@pragma('vm:prefer-inline')
-_$HttpValidationErrorCopyWith<_HttpValidationError> get copyWith => __$HttpValidationErrorCopyWithImpl<_HttpValidationError>(this, _$identity);
+  factory _HttpValidationError.fromJson(Map<String, dynamic> json) =
+      _$HttpValidationErrorImpl.fromJson;
 
-@override
-Map<String, dynamic> toJson() {
-  return _$HttpValidationErrorToJson(this, );
+  @override
+  List<ValidationError>? get detail;
+  @override
+  @JsonKey(ignore: true)
+  _$$HttpValidationErrorImplCopyWith<_$HttpValidationErrorImpl> get copyWith =>
+      throw _privateConstructorUsedError;
 }
-
-@override
-bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _HttpValidationError&&const DeepCollectionEquality().equals(other._detail, _detail));
-}
-
-@JsonKey(includeFromJson: false, includeToJson: false)
-@override
-int get hashCode => Object.hash(runtimeType,const DeepCollectionEquality().hash(_detail));
-
-@override
-String toString() {
-  return 'HttpValidationError(detail: $detail)';
-}
-
-
-}
-
-/// @nodoc
-abstract mixin class _$HttpValidationErrorCopyWith<$Res> implements $HttpValidationErrorCopyWith<$Res> {
-  factory _$HttpValidationErrorCopyWith(_HttpValidationError value, $Res Function(_HttpValidationError) _then) = __$HttpValidationErrorCopyWithImpl;
-@override @useResult
-$Res call({
- List<ValidationError>? detail
-});
-
-
-
-
-}
-/// @nodoc
-class __$HttpValidationErrorCopyWithImpl<$Res>
-    implements _$HttpValidationErrorCopyWith<$Res> {
-  __$HttpValidationErrorCopyWithImpl(this._self, this._then);
-
-  final _HttpValidationError _self;
-  final $Res Function(_HttpValidationError) _then;
-
-/// Create a copy of HttpValidationError
-/// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? detail = freezed,}) {
-  return _then(_HttpValidationError(
-detail: freezed == detail ? _self._detail : detail // ignore: cast_nullable_to_non_nullable
-as List<ValidationError>?,
-  ));
-}
-
-
-}
-
-// dart format on

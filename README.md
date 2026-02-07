@@ -243,37 +243,37 @@ mise tasks --all
 ### App-specific Tasks
 
 <details>
-<summary>API (apps/api)</summary>
+<summary>API (apps/fullstack/api)</summary>
 
 | Command | Description |
 |---------|-------------|
-| `mise //apps/api:install` | Install dependencies |
-| `mise //apps/api:dev` | Start development server |
-| `mise //apps/api:test` | Run tests |
-| `mise //apps/api:lint` | Run linter |
-| `mise //apps/api:format` | Format code |
-| `mise //apps/api:typecheck` | Type check |
-| `mise //apps/api:migrate` | Run migrations |
-| `mise //apps/api:migrate:create` | Create new migration |
-| `mise //apps/api:gen:openapi` | Generate OpenAPI schema |
-| `mise //apps/api:infra:up` | Start local infrastructure |
-| `mise //apps/api:infra:down` | Stop local infrastructure |
+| `mise //apps/fullstack/api:install` | Install dependencies |
+| `mise //apps/fullstack/api:dev` | Start development server |
+| `mise //apps/fullstack/api:test` | Run tests |
+| `mise //apps/fullstack/api:lint` | Run linter |
+| `mise //apps/fullstack/api:format` | Format code |
+| `mise //apps/fullstack/api:typecheck` | Type check |
+| `mise //apps/fullstack/api:migrate` | Run migrations |
+| `mise //apps/fullstack/api:migrate:create` | Create new migration |
+| `mise //apps/fullstack/api:gen:openapi` | Generate OpenAPI schema |
+| `mise //apps/fullstack/api:infra:up` | Start local infrastructure |
+| `mise //apps/fullstack/api:infra:down` | Stop local infrastructure |
 
 </details>
 
 <details>
-<summary>Web (apps/web)</summary>
+<summary>Web (apps/fullstack/web)</summary>
 
 | Command | Description |
 |---------|-------------|
-| `mise //apps/web:install` | Install dependencies |
-| `mise //apps/web:dev` | Start development server |
-| `mise //apps/web:build` | Production build |
-| `mise //apps/web:test` | Run tests |
-| `mise //apps/web:lint` | Run linter |
-| `mise //apps/web:format` | Format code |
-| `mise //apps/web:typecheck` | Type check |
-| `mise //apps/web:gen:api` | Generate API client |
+| `mise //apps/fullstack/web:install` | Install dependencies |
+| `mise //apps/fullstack/web:dev` | Start development server |
+| `mise //apps/fullstack/web:build` | Production build |
+| `mise //apps/fullstack/web:test` | Run tests |
+| `mise //apps/fullstack/web:lint` | Run linter |
+| `mise //apps/fullstack/web:format` | Format code |
+| `mise //apps/fullstack/web:typecheck` | Type check |
+| `mise //apps/fullstack/web:gen:api` | Generate API client |
 
 </details>
 
@@ -294,15 +294,15 @@ mise tasks --all
 </details>
 
 <details>
-<summary>Worker (apps/worker)</summary>
+<summary>Worker (apps/fullstack/worker)</summary>
 
 | Command | Description |
 |---------|-------------|
-| `mise //apps/worker:install` | Install dependencies |
-| `mise //apps/worker:dev` | Start worker |
-| `mise //apps/worker:test` | Run tests |
-| `mise //apps/worker:lint` | Run linter |
-| `mise //apps/worker:format` | Format code |
+| `mise //apps/fullstack/worker:install` | Install dependencies |
+| `mise //apps/fullstack/worker:dev` | Start worker |
+| `mise //apps/fullstack/worker:test` | Run tests |
+| `mise //apps/fullstack/worker:lint` | Run linter |
+| `mise //apps/fullstack/worker:format` | Format code |
 
 </details>
 
@@ -356,7 +356,7 @@ packages/i18n/src/ja.arb  # Japanese
 # Build and deploy to each app
 mise i18n:build
 # Generated files:
-# - apps/web/src/config/messages/*.json (Nested JSON)
+# - apps/fullstack/web/src/config/messages/*.json (Nested JSON)
 # - apps/mobile/lib/i18n/messages/app_*.arb (Flutter ARB)
 ```
 
@@ -371,7 +371,7 @@ packages/design-tokens/src/tokens.ts
 # Build and distribute
 mise tokens:build
 # Generated files:
-# - apps/web/src/app/[locale]/tokens.css (CSS variables)
+# - apps/fullstack/web/src/app/[locale]/tokens.css (CSS variables)
 # - apps/mobile/lib/core/theme/generated_theme.dart (Flutter Theme)
 ```
 
@@ -383,10 +383,10 @@ Copy example files and configure:
 
 ```bash
 # API
-cp apps/api/.env.example apps/api/.env
+cp apps/fullstack/api/.env.example apps/fullstack/api/.env
 
 # Web
-cp apps/web/.env.example apps/web/.env
+cp apps/fullstack/web/.env.example apps/fullstack/fullstack/web/.env
 
 # Infra
 cp apps/infra/terraform.tfvars.example apps/infra/terraform.tfvars
@@ -427,16 +427,16 @@ This generates `lib/firebase_options.dart` with your Firebase configuration.
 ### GitHub Actions (Recommended)
 
 Push to `main` branch triggers automatic deployment:
-- `apps/api/` changes → Deploy API
-- `apps/web/` changes → Deploy Web
-- `apps/worker/` changes → Deploy Worker
+- `apps/fullstack/api/` changes → Deploy API
+- `apps/fullstack/web/` changes → Deploy Web
+- `apps/fullstack/worker/` changes → Deploy Worker
 - `apps/mobile/` changes → Build & Deploy to Firebase App Distribution
 
 ### Manual Deployment
 
 ```bash
 # Build and push Docker images
-cd apps/api
+cd apps/fullstack/api
 docker build -t gcr.io/PROJECT_ID/api .
 docker push gcr.io/PROJECT_ID/api
 
@@ -467,6 +467,7 @@ bundle exec fastlane ios testflight_deploy  # Deploy to TestFlight
 This template is designed to work with AI coding agents (Gemini, Claude, etc.).
 
 - `.agent/rules/` - Guidelines for AI agents
+- `.agent/design/` - Design assets & Stitch MCP config
 - `.serena/` - Serena MCP configuration
 
 ## Documentation

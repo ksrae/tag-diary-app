@@ -6,50 +6,21 @@ part of 'router.dart';
 // RiverpodGenerator
 // **************************************************************************
 
-// GENERATED CODE - DO NOT MODIFY BY HAND
-// ignore_for_file: type=lint, type=warning
-/// The main router for the application.
+String _$routerHash() => r'20f9b1b41d7e6f8beb09a978b99f9aca3aa5f8b3';
 
+/// The main router for the application.
+///
+/// Copied from [router].
 @ProviderFor(router)
-const routerProvider = RouterProvider._();
+final routerProvider = AutoDisposeProvider<GoRouter>.internal(
+  router,
+  name: r'routerProvider',
+  debugGetCreateSourceHash:
+      const bool.fromEnvironment('dart.vm.product') ? null : _$routerHash,
+  dependencies: null,
+  allTransitiveDependencies: null,
+);
 
-/// The main router for the application.
-
-final class RouterProvider
-    extends $FunctionalProvider<GoRouter, GoRouter, GoRouter>
-    with $Provider<GoRouter> {
-  /// The main router for the application.
-  const RouterProvider._()
-    : super(
-        from: null,
-        argument: null,
-        retry: null,
-        name: r'routerProvider',
-        isAutoDispose: true,
-        dependencies: null,
-        $allTransitiveDependencies: null,
-      );
-
-  @override
-  String debugGetCreateSourceHash() => _$routerHash();
-
-  @$internal
-  @override
-  $ProviderElement<GoRouter> $createElement($ProviderPointer pointer) =>
-      $ProviderElement(pointer);
-
-  @override
-  GoRouter create(Ref ref) {
-    return router(ref);
-  }
-
-  /// {@macro riverpod.override_with_value}
-  Override overrideWithValue(GoRouter value) {
-    return $ProviderOverride(
-      origin: this,
-      providerOverride: $SyncValueProvider<GoRouter>(value),
-    );
-  }
-}
-
-String _$routerHash() => r'9cae4a61d9c5b4187d43ddd7e365b0dc3f41eb77';
+typedef RouterRef = AutoDisposeProviderRef<GoRouter>;
+// ignore_for_file: type=lint
+// ignore_for_file: subtype_of_sealed_class, invalid_use_of_internal_member, invalid_use_of_visible_for_testing_member
