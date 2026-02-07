@@ -36,8 +36,8 @@ const PROMPTS = {
        - Stick strictly to the provided context.
     
     6. **Keep it Short and Authentic**:
-       - If SNS style is requested, write 2-3 short sentences with hashtags.
-       - Otherwise, aim for about 5-7 sentences that reflect personal experience and emotion.
+       - If SNS style is requested, write 3-4 short sentences with hashtags.
+       - Otherwise, aim for about 7-9 sentences that reflect personal experience and emotion.
 
     7. **Remove unrelated words**
        - Do not write unrelated with contents of diary.
@@ -70,9 +70,8 @@ const PROMPTS = {
        - 주어진 맥락에서만 글을 작성하세요.
     
     6. **글 길이 조절**:
-       - SNS 스타일 요청 시: 2-3문장으로 짧게 작성하고 해시태그를 포함하세요.
-       - 일반 스타일: 5-7문장으로 개인의 경험과 감정에 집중하세요.
-
+       - SNS 스타일 요청 시: 3-4문장으로 짧게 작성하고 해시태그를 포함하세요.
+       - 일반 스타일: 7-9문장으로 개인의 경험과 감정에 집중하세요.
     7. **필요 없는 내용은 생략**
        - 일기의 내용과 관계 없는 내용은 작성하지 마세요.
        `,
