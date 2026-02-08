@@ -1,8 +1,8 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_native_splash/flutter_native_splash.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:mobile/core/router/router.dart';
 import 'package:mobile/core/router/router.dart';
 import 'package:mobile/core/theme/app_theme.dart';
 import 'package:mobile/features/lock/application/lock_service.dart';
@@ -15,7 +15,8 @@ import 'dart:convert';
 import 'dart:typed_data';
 
 void main() async {
-  WidgetsFlutterBinding.ensureInitialized();
+  WidgetsBinding widgetsBinding = WidgetsFlutterBinding.ensureInitialized();
+  FlutterNativeSplash.preserve(widgetsBinding: widgetsBinding);
 
   // Initialize Hive
   await Hive.initFlutter();
@@ -93,7 +94,11 @@ class _MyAppState extends ConsumerState<MyApp> {
     if (enabled && hasPin) {
       if (mounted) setState(() => _isLocked = true);
     }
+    
     if (mounted) setState(() => _isLoading = false);
+    
+    // Always remove splash after initialization is complete
+    FlutterNativeSplash.remove();
   }
 
   @override
