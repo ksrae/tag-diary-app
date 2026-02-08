@@ -104,7 +104,7 @@ class _MyAppState extends ConsumerState<MyApp> {
       return MaterialApp(
         title: 'AI 일기 (잠금)',
         theme: AppTheme.light,
-        darkTheme: AppTheme.dark,
+        themeMode: ThemeMode.light,
         home: LockScreen(
           onUnlock: () {
             setState(() => _isLocked = false);
@@ -124,7 +124,7 @@ class _MyAppState extends ConsumerState<MyApp> {
     return MaterialApp.router(
       title: 'AI 일기',
       theme: AppTheme.light,
-      darkTheme: AppTheme.dark,
+      themeMode: ThemeMode.light,
       routerConfig: router,
       localizationsDelegates: const [
         GlobalMaterialLocalizations.delegate,

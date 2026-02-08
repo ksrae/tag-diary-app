@@ -6,10 +6,12 @@ class DiaryImageSlider extends StatefulWidget {
     super.key,
     required this.images,
     required this.onImageTap,
+    this.editCount = 0,
   });
 
   final List<String> images;
   final Function(int index) onImageTap;
+  final int editCount;
 
   @override
   State<DiaryImageSlider> createState() => _DiaryImageSliderState();
@@ -67,7 +69,7 @@ class _DiaryImageSliderState extends State<DiaryImageSlider> {
               ),
             ),
             
-            // Left Arrow
+            // Left Arrow (keeping current icon button style as requested)
             if (widget.images.length > 1)
               Positioned(
                 left: 8,
@@ -94,7 +96,7 @@ class _DiaryImageSliderState extends State<DiaryImageSlider> {
                 ),
               ),
               
-            // Right Arrow
+            // Right Arrow (keeping current icon button style as requested)
             if (widget.images.length > 1)
               Positioned(
                 right: 8,
@@ -120,31 +122,65 @@ class _DiaryImageSliderState extends State<DiaryImageSlider> {
                   },
                 ),
               ),
-              
-            // Current index badge (optional, but dots are standard)
+
+            // Edit count badge (bottom left)
+            if (widget.editCount > 0)
+              Positioned(
+                bottom: 16,
+                left: 16,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: Colors.black.withOpacity(0.6),
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(
+                        Icons.edit_note,
+                        size: 14,
+                        color: Colors.white,
+                      ),
+                      const SizedBox(width: 4),
+                      Text(
+                        '수정 가능 횟수: ${3 - widget.editCount}회 남음',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
           ],
         ),
         
         // Dots Indicator
         if (widget.images.length > 1) ...[
-          const SizedBox(height: 8),
+          const SizedBox(height: 12),
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: List.generate(widget.images.length, (index) {
-              return Container(
-                width: 8,
+              final isActive = _currentPage == index;
+              return AnimatedContainer(
+                duration: const Duration(milliseconds: 200),
+                width: isActive ? 24 : 8,
                 height: 8,
-                margin: const EdgeInsets.symmetric(horizontal: 4),
+                margin: const EdgeInsets.symmetric(horizontal: 3),
                 decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: _currentPage == index
-                      ? Theme.of(context).primaryColor
-                      : Colors.grey.shade300,
+                  borderRadius: BorderRadius.circular(4),
+                  color: isActive
+                      ? Theme.of(context).colorScheme.primary
+                      : Colors.grey.shade400,
                 ),
               );
             }),
           ),
         ],
+        const SizedBox(height: 8),
       ],
     );
   }

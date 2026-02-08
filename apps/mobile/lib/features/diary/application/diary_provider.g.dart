@@ -200,9 +200,28 @@ final yearAgoMemoryProvider = AutoDisposeFutureProvider<Diary?>.internal(
 );
 
 typedef YearAgoMemoryRef = AutoDisposeFutureProviderRef<Diary?>;
+String _$selectedDateHash() => r'63a03d318cb121ed7968cb801fe2c4c3dd623b34';
+
+/// Selected date for diary feed (single date selection)
+///
+/// Copied from [SelectedDate].
+@ProviderFor(SelectedDate)
+final selectedDateProvider =
+    AutoDisposeNotifierProvider<SelectedDate, DateTime>.internal(
+  SelectedDate.new,
+  name: r'selectedDateProvider',
+  debugGetCreateSourceHash:
+      const bool.fromEnvironment('dart.vm.product') ? null : _$selectedDateHash,
+  dependencies: null,
+  allTransitiveDependencies: null,
+);
+
+typedef _$SelectedDate = AutoDisposeNotifier<DateTime>;
 String _$diaryFilterHash() => r'e1a6681a86bc5b78c728bdff06aa9ca7e8bd1e51';
 
-/// See also [DiaryFilter].
+/// Legacy filter provider for backward compatibility
+///
+/// Copied from [DiaryFilter].
 @ProviderFor(DiaryFilter)
 final diaryFilterProvider = AutoDisposeNotifierProvider<DiaryFilter,
     ({DateTime? start, DateTime? end})>.internal(
@@ -215,9 +234,28 @@ final diaryFilterProvider = AutoDisposeNotifierProvider<DiaryFilter,
 );
 
 typedef _$DiaryFilter = AutoDisposeNotifier<({DateTime? start, DateTime? end})>;
+String _$infiniteScrollDiaryListHash() =>
+    r'b71d6d054771f75269b22dd90d4d887d573fa1ef';
+
+/// Provider for infinite scroll diary list
+///
+/// Copied from [InfiniteScrollDiaryList].
+@ProviderFor(InfiniteScrollDiaryList)
+final infiniteScrollDiaryListProvider = AutoDisposeNotifierProvider<
+    InfiniteScrollDiaryList, InfiniteScrollState>.internal(
+  InfiniteScrollDiaryList.new,
+  name: r'infiniteScrollDiaryListProvider',
+  debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
+      ? null
+      : _$infiniteScrollDiaryListHash,
+  dependencies: null,
+  allTransitiveDependencies: null,
+);
+
+typedef _$InfiniteScrollDiaryList = AutoDisposeNotifier<InfiniteScrollState>;
 String _$diaryListHash() => r'b411cdbe6ad3a595d6544e8c12d8a81ac28c1d46';
 
-/// Provider for diary list (Local Storage with Date Filtering)
+/// Provider for diary list (Legacy - for backward compatibility)
 ///
 /// Copied from [DiaryList].
 @ProviderFor(DiaryList)
@@ -232,5 +270,24 @@ final diaryListProvider =
 );
 
 typedef _$DiaryList = AutoDisposeAsyncNotifier<List<Diary>>;
+String _$memoryBannerDismissedHash() =>
+    r'59276110bea900adf29752934e52b2415cb0ce69';
+
+/// Memory banner dismiss state (stored in SharedPreferences)
+///
+/// Copied from [MemoryBannerDismissed].
+@ProviderFor(MemoryBannerDismissed)
+final memoryBannerDismissedProvider =
+    AutoDisposeAsyncNotifierProvider<MemoryBannerDismissed, bool>.internal(
+  MemoryBannerDismissed.new,
+  name: r'memoryBannerDismissedProvider',
+  debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
+      ? null
+      : _$memoryBannerDismissedHash,
+  dependencies: null,
+  allTransitiveDependencies: null,
+);
+
+typedef _$MemoryBannerDismissed = AutoDisposeAsyncNotifier<bool>;
 // ignore_for_file: type=lint
 // ignore_for_file: subtype_of_sealed_class, invalid_use_of_internal_member, invalid_use_of_visible_for_testing_member

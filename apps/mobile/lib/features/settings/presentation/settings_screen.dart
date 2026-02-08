@@ -224,7 +224,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             },
           ),
           SwitchListTile(
-            secondary: const Icon(Icons.monitor_heart),
+            secondary: const Icon(Icons.directions_run),
             title: const Text('오늘의 헬스정보'),
             subtitle: const Text('걸음 수, 활동 시간, 칼로리 수집'),
             value: _collectHealth,

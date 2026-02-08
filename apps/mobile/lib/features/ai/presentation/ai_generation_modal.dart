@@ -135,8 +135,8 @@ class _AiGenerationModalState extends ConsumerState<AiGenerationModal> {
       ));
     }
     
-    // Health (if included)
-    if (_includeHealth && widget.healthInfo != null) {
+    // Health (if included and available)
+    if (_includeHealth && widget.healthInfo != null && !widget.healthInfo!.isEmpty) {
       chips.add(Chip(
         avatar: const Icon(Icons.favorite, size: 16),
         label: const Text('건강정보'),
@@ -316,8 +316,8 @@ class _AiGenerationModalState extends ConsumerState<AiGenerationModal> {
               const SizedBox(height: 16),
             ],
 
-            // Include Health Toggle
-            if (widget.healthInfo != null)
+            // Include Health Toggle - only show if health data is available
+            if (widget.healthInfo != null && !widget.healthInfo!.isEmpty)
               SwitchListTile(
                 title: const Text('건강/활동 정보 포함'),
                 subtitle: Text(widget.healthInfo!.summary, style: const TextStyle(fontSize: 12)),

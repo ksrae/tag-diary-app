@@ -67,6 +67,41 @@ class DiaryRepository {
     return entries;
   }
 
+  /// Get diaries with cursor-based pagination for infinite scroll
+  /// [fromDate] - Reference date to start from
+  /// [limit] - Number of entries to fetch
+  /// [loadOlder] - If true, load entries older than fromDate; if false, load newer
+  Future<List<Diary>> getDiariesPaginated({
+    required DateTime fromDate,
+    required int limit,
+    bool loadOlder = true,
+  }) async {
+    await _init();
+    
+    var entries = _box!.values.toList();
+    
+    if (loadOlder) {
+      // Get entries older than or equal to fromDate
+      final from = DateTime(fromDate.year, fromDate.month, fromDate.day, 23, 59, 59, 999);
+      entries = entries.where((d) => d.createdAt.compareTo(from) <= 0).toList();
+      entries.sort((a, b) => b.createdAt.compareTo(a.createdAt)); // Newest first
+    } else {
+      // Get entries newer than fromDate
+      final from = DateTime(fromDate.year, fromDate.month, fromDate.day);
+      entries = entries.where((d) => d.createdAt.compareTo(from) > 0).toList();
+      entries.sort((a, b) => a.createdAt.compareTo(b.createdAt)); // Oldest first (then reverse for display)
+    }
+    
+    final result = entries.take(limit).toList();
+    
+    // For newer entries, reverse to maintain newest-first order for display
+    if (!loadOlder) {
+      result.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+    }
+    
+    return result;
+  }
+
   /// Get distinct dates that have entries (for calendar markers)
   Future<List<DateTime>> getDatesWithEntries() async {
     await _init();
