@@ -338,55 +338,7 @@ class _DiaryDetailScreenState extends ConsumerState<DiaryDetailScreen> {
                       const SizedBox(height: 16),
 
                       // Action chips: Gallery, Calendar, Activity, Tags
-                      Wrap(
-                        spacing: 8,
-                        runSpacing: 8,
-                        children: [
-                          // Gallery chip (if has photos)
-                          if (diary.photos.isNotEmpty)
-                            _buildActionChip(
-                              context,
-                              icon: Icons.photo_library,
-                              label: 'Gallery',
-                              onTap: () {
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (context) => DiaryGalleryScreen(
-                                      images: diary.photos,
-                                      initialIndex: 0,
-                                    ),
-                                  ),
-                                );
-                              },
-                            ),
-                          // Calendar chip (if has calendar events)
-                          if (diary.sources.any((s) => s.type == 'calendar'))
-                            _buildActionChip(
-                              context,
-                              icon: Icons.calendar_month,
-                              label: 'Calendar',
-                              onTap: () {
-                                final timestamp = diary.createdAt.millisecondsSinceEpoch;
-                                final url = Platform.isAndroid 
-                                    ? 'content://com.android.calendar/time/$timestamp'
-                                    : 'calshow:${diary.createdAt.difference(DateTime(2001, 1, 1)).inSeconds}';
-                                launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication);
-                              },
-                            ),
-                          // Activity chip (Steps)
-                          if (diary.sources.any((s) => s.type == 'steps'))
-                            _buildActionChip(
-                              context,
-                              icon: Icons.directions_walk,
-                              label: diary.sources.firstWhere((s) => s.type == 'steps').contentPreview,
-                              onTap: () {
-                                final url = Platform.isIOS ? 'x-apple-health://' : 'https://fit.google.com';
-                                launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication);
-                              },
-                            ),
-                        ],
-                      ),
+                      // Tags section with toggle
 
                       // Tags section with toggle
                       if (tags.isNotEmpty) ...[
