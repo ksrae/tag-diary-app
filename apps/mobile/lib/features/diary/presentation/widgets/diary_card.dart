@@ -1,9 +1,10 @@
 import 'dart:io';
+import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:mobile/features/diary/data/models/diary.dart';
 
-/// SNS-style diary card widget
+/// SNS-style diary card widget with date column layout
 class DiaryCard extends StatelessWidget {
   const DiaryCard({
     super.key,
@@ -33,186 +34,308 @@ class DiaryCard extends StatelessWidget {
     }
   }
 
-  String _getWeatherIcon(String? condition) {
+  IconData _getWeatherIcon(String? condition) {
     switch (condition?.toLowerCase()) {
       case 'sunny':
       case 'clear':
-        return '☀️';
+        return Icons.wb_sunny;
       case 'cloudy':
-        return '☁️';
+        return Icons.cloud;
       case 'rainy':
       case 'rain':
-        return '🌧️';
+        return Icons.water_drop;
       case 'snowy':
       case 'snow':
-        return '❄️';
+        return Icons.ac_unit;
       default:
-        return '🌤️';
+        return Icons.wb_cloudy;
+    }
+  }
+
+  Color _getWeatherColor(String? condition) {
+    switch (condition?.toLowerCase()) {
+      case 'sunny':
+      case 'clear':
+        return Colors.orange;
+      case 'cloudy':
+        return Colors.blueGrey;
+      case 'rainy':
+      case 'rain':
+        return Colors.blue;
+      case 'snowy':
+      case 'snow':
+        return Colors.lightBlue;
+      default:
+        return Colors.grey;
+    }
+  }
+
+  /// Get subtle background color based on mood
+  Color _getMoodBackgroundColor(String? mood, ThemeData theme) {
+    final isDark = theme.brightness == Brightness.dark;
+    final opacity = isDark ? 0.15 : 0.25;
+    
+    switch (mood) {
+      case 'happy':
+        return Colors.amber.withOpacity(opacity);
+      case 'sad':
+        return Colors.blue.withOpacity(opacity);
+      case 'peaceful':
+        return Colors.green.withOpacity(opacity);
+      case 'angry':
+        return Colors.red.withOpacity(opacity);
+      case 'tired':
+        return Colors.blueGrey.withOpacity(opacity);
+      case 'loved':
+        return Colors.pink.withOpacity(opacity);
+      default:
+        return theme.colorScheme.surfaceContainerHighest.withOpacity(0.5);
     }
   }
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final dateFormat = DateFormat('M월 d일 EEEE', 'ko');
+    final timeFormat = DateFormat('h:mm a');
+    
+    // Get title (first line of content or truncated)
+
+    
+    // Get tags
+    final tags = diary.sources
+        .where((s) => s.type == 'tag')
+        .map((s) => s.contentPreview)
+        .toSet()
+        .toList();
+
+    // Get mood-based background color
+    final backgroundColor = _getMoodBackgroundColor(diary.mood, theme);
 
     return Card(
-      elevation: 2,
+      elevation: 0,
+      color: backgroundColor,
       clipBehavior: Clip.antiAlias,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+      ),
       child: InkWell(
         onTap: onTap,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Photos grid (Max 3)
-            if (diary.photos.isNotEmpty)
+        child: Padding(
+          padding: const EdgeInsets.all(12),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Left: Date Column
               Container(
-                height: 120, // Reduced height for thumbnails
-                margin: const EdgeInsets.only(bottom: 0),
-                child: Row(
+                width: 50,
+                padding: const EdgeInsets.only(right: 8),
+                decoration: BoxDecoration(
+                  border: Border(
+                    right: BorderSide(
+                      color: theme.colorScheme.outlineVariant,
+                      width: 1,
+                    ),
+                  ),
+                ),
+                child: Column(
                   children: [
-                    for (int i = 0; i < diary.photos.length && i < 3; i++)
-                      Expanded(
-                        child: Padding(
-                          padding: EdgeInsets.only(right: i < 2 ? 2.0 : 0),
-                          child: Stack(
-                            fit: StackFit.expand,
-                            children: [
-                              _buildPhotoItem(context, diary.photos[i]),
-                              if (i == 2 && diary.photos.length > 3)
-                                Container(
-                                  color: Colors.black.withOpacity(0.5),
-                                  alignment: Alignment.center,
-                                  child: Text(
-                                    '+${diary.photos.length - 3}',
-                                    style: const TextStyle(
-                                      color: Colors.white,
-                                      fontSize: 24,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
-                                ),
-                            ],
-                          ),
-                        ),
+                    // Day number
+                    Text(
+                      diary.createdAt.day.toString(),
+                      style: theme.textTheme.headlineMedium?.copyWith(
+                        fontWeight: FontWeight.bold,
+                        height: 1,
                       ),
-                    // Fill remaining space if less than 3 photos to maintain aspect ratio?
-                    // No, usually grid just takes available width. 
-                    // If 1 photo: Full width (Expanded). 
-                    // If 2 photos: 50% each.
-                    // If 3 photos: 33% each.
-                    // Doing 'Expanded' in a loop handles this automatically.
+                    ),
+                    // Month in Korean
+                    Text(
+                      '${diary.createdAt.month}월',
+                      style: theme.textTheme.labelSmall?.copyWith(
+                        color: theme.colorScheme.outline,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    // Weather icon
+                    if (diary.weather != null)
+                      Icon(
+                        _getWeatherIcon(diary.weather!.condition),
+                        size: 18,
+                        color: _getWeatherColor(diary.weather!.condition),
+                      ),
+                    const SizedBox(height: 4),
+                    // Mood emoji
+                    Text(
+                      _getMoodEmoji(diary.mood),
+                      style: const TextStyle(fontSize: 18),
+                    ),
                   ],
                 ),
               ),
-
-            Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Date, mood, weather header
-                  Row(
-                    children: [
-                      Text(
-                        dateFormat.format(diary.createdAt),
-                        style: theme.textTheme.titleMedium?.copyWith(
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      const Spacer(),
-                      // AI icon (if AI generated)
-                      if (diary.isAiGenerated) ...[
-                        Icon(
-                          Icons.auto_awesome,
-                          size: 16,
-                          color: theme.colorScheme.primary,
-                        ),
-                        const SizedBox(width: 6),
-                      ],
-                      Text(
-                        _getMoodEmoji(diary.mood),
-                        style: const TextStyle(fontSize: 20),
-                      ),
-                      const SizedBox(width: 8),
-                      if (diary.weather != null) ...[
+              
+              const SizedBox(width: 12),
+              
+              // Right: Content Column
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // First line: Tags + Time/AI aligned right
+                    Row(
+                      children: [
+                        // Tags with dynamic +n display
+                        if (tags.isNotEmpty)
+                          Expanded(
+                            child: LayoutBuilder(
+                              builder: (context, constraints) {
+                                final tagStyle = theme.textTheme.labelSmall?.copyWith(
+                                  color: theme.colorScheme.primary,
+                                  fontSize: 11,
+                                );
+                                final plusStyle = theme.textTheme.labelSmall?.copyWith(
+                                  color: theme.colorScheme.outline,
+                                  fontSize: 11,
+                                );
+                                
+                                double availableWidth = constraints.maxWidth;
+                                List<String> visibleTags = [];
+                                int remaining = 0;
+                                
+                                for (int i = 0; i < tags.length; i++) {
+                                  final tagText = '#${tags[i]} ';
+                                  final textPainter = TextPainter(
+                                    text: TextSpan(text: tagText, style: tagStyle),
+                                    maxLines: 1,
+                                    textDirection: ui.TextDirection.ltr,
+                                  )..layout();
+                                  
+                                  // Reserve space for "+n" if there might be more
+                                  final plusTextPainter = TextPainter(
+                                    text: TextSpan(text: '+${tags.length - i - 1}', style: plusStyle),
+                                    maxLines: 1,
+                                    textDirection: ui.TextDirection.ltr,
+                                  )..layout();
+                                  
+                                  final neededForPlus = (i < tags.length - 1) ? plusTextPainter.width + 4 : 0;
+                                  
+                                  if (availableWidth - textPainter.width >= neededForPlus) {
+                                    visibleTags.add(tags[i]);
+                                    availableWidth -= textPainter.width;
+                                  } else {
+                                    remaining = tags.length - i;
+                                    break;
+                                  }
+                                }
+                                
+                                return Row(
+                                  children: [
+                                    Flexible(
+                                      child: Text(
+                                        visibleTags.map((t) => '#$t').join(' '),
+                                        maxLines: 1,
+                                        overflow: TextOverflow.clip,
+                                        style: tagStyle,
+                                      ),
+                                    ),
+                                    if (remaining > 0) ...[
+                                      const SizedBox(width: 4),
+                                      Text('+$remaining', style: plusStyle),
+                                    ],
+                                  ],
+                                );
+                              },
+                            ),
+                          ),
+                        if (tags.isEmpty)
+                          const Spacer(),
+                        const SizedBox(width: 8),
+                        // AI indicator
+                        if (diary.isAiGenerated)
+                          Padding(
+                            padding: const EdgeInsets.only(right: 4),
+                            child: Icon(
+                              Icons.auto_awesome,
+                              size: 14,
+                              color: theme.colorScheme.primary,
+                            ),
+                          ),
                         Text(
-                          _getWeatherIcon(diary.weather!.condition),
-                          style: const TextStyle(fontSize: 18),
-                        ),
-                        const SizedBox(width: 4),
-                        Text(
-                          '${diary.weather!.temp.round()}°',
-                          style: theme.textTheme.bodySmall,
+                          timeFormat.format(diary.createdAt),
+                          style: theme.textTheme.labelSmall?.copyWith(
+                            color: theme.colorScheme.outline,
+                            fontSize: 10,
+                          ),
                         ),
                       ],
-                    ],
-                  ),
-
-                  const SizedBox(height: 12),
-
-                  // Content preview
-                  Text(
-                    diary.content,
-                    maxLines: 3,
-                    overflow: TextOverflow.ellipsis,
-                    style: theme.textTheme.bodyMedium,
-                  ),
-
-                  // Tags only (reduced spacing)
-                  if (diary.sources.any((s) => s.type == 'tag'))
-                    Padding(
-                      padding: const EdgeInsets.only(top: 8),
-                      child: Wrap(
-                        spacing: 8,
-                        runSpacing: 4,
-                        children: diary.sources
-                            .where((s) => s.type == 'tag')
-                            .map((s) => s.contentPreview) // Content preview holds the tag name
-                            .toSet() 
-                            .map((tagName) {
-                              return Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                                decoration: BoxDecoration(
-                                  color: theme.colorScheme.surfaceContainerHighest,
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                                child: Text(
-                                  '#$tagName',
-                                  style: theme.textTheme.labelSmall,
-                                ),
-                              );
-                            })
-                            .toList(),
+                    ),
+                    
+                    const SizedBox(height: 6),
+                    
+                    // Content (clean, no filtering needed since AI won't add hashtags)
+                    Text(
+                      diary.content,
+                      maxLines: 3,
+                      overflow: TextOverflow.ellipsis,
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: theme.colorScheme.onSurface.withOpacity(0.85),
+                        height: 1.4,
                       ),
                     ),
-                ],
+                    
+                    // Photos (if any)
+                    if (diary.photos.isNotEmpty) ...[
+                      const SizedBox(height: 8),
+                      SizedBox(
+                        height: 60,
+                        child: Row(
+                          children: [
+                            for (int i = 0; i < diary.photos.length && i < 3; i++)
+                              Padding(
+                                padding: EdgeInsets.only(right: i < 2 ? 6 : 0),
+                                child: ClipRRect(
+                                  borderRadius: BorderRadius.circular(8),
+                                  child: SizedBox(
+                                    width: 60,
+                                    height: 60,
+                                    child: Stack(
+                                      fit: StackFit.expand,
+                                      children: [
+                                        _buildPhotoItem(context, diary.photos[i]),
+                                        if (i == 2 && diary.photos.length > 3)
+                                          Container(
+                                            color: Colors.black.withOpacity(0.5),
+                                            alignment: Alignment.center,
+                                            child: Text(
+                                              '+${diary.photos.length - 3}',
+                                              style: const TextStyle(
+                                                color: Colors.white,
+                                                fontSize: 14,
+                                                fontWeight: FontWeight.bold,
+                                              ),
+                                            ),
+                                          ),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                              ),
+                          ],
+                        ),
+                      ),
+                    ],
+                    
+
+                  ],
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
   }
 
-  IconData _getSourceIcon(String type) {
-    switch (type) {
-      case 'photo':
-        return Icons.photo;
-      case 'calendar':
-        return Icons.calendar_today;
-      case 'memo':
-        return Icons.note;
-      case 'message':
-        return Icons.message;
-      case 'location':
-        return Icons.location_on;
-      case 'steps':
-        return Icons.directions_walk;
-      default:
-        return Icons.link;
-    }
-  }
+
 
   Widget _buildPhotoItem(BuildContext context, String path) {
     final isNetwork = path.startsWith('http');
@@ -224,7 +347,7 @@ class DiaryCard extends StatelessWidget {
             fit: BoxFit.cover,
             errorBuilder: (_, __, ___) => Container(
               color: theme.colorScheme.surfaceContainerHighest,
-              child: const Icon(Icons.image_not_supported, size: 24),
+              child: const Icon(Icons.image_not_supported, size: 20),
             ),
           )
         : Image.file(
@@ -232,7 +355,7 @@ class DiaryCard extends StatelessWidget {
             fit: BoxFit.cover,
             errorBuilder: (_, __, ___) => Container(
               color: theme.colorScheme.surfaceContainerHighest,
-              child: const Icon(Icons.broken_image, size: 24),
+              child: const Icon(Icons.broken_image, size: 20),
             ),
           );
   }

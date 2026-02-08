@@ -17,6 +17,7 @@ import 'package:mobile/features/ai/application/ai_service.dart';
 import 'package:mobile/features/shared/data/health_repository.dart';
 import 'package:mobile/features/shared/application/weather_service.dart';
 import 'package:photo_manager/photo_manager.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 /// Single-page diary creation screen
 /// Both Free and Pro: Show all today's photos, allow manual addition
@@ -214,7 +215,8 @@ class _DiaryCreateScreenState extends ConsumerState<DiaryCreateScreen> {
   }
 
   void _addTag(String value) {
-    final newTags = value.split(',').map((e) => e.trim()).where((e) => e.isNotEmpty).toList();
+    // Split by whitespace (space, tab, etc.) - no spaces allowed in tags
+    final newTags = value.split(RegExp(r'\s+')).map((e) => e.trim()).where((e) => e.isNotEmpty).toList();
     if (newTags.isNotEmpty) {
       setState(() {
         for (var tag in newTags) {
@@ -316,7 +318,7 @@ class _DiaryCreateScreenState extends ConsumerState<DiaryCreateScreen> {
       
       contextParts.add('날씨: ${weather.temp}°C ${weather.condition}');
       
-      if (includeHealth) {
+      if (includeHealth && !health.isEmpty) {
         contextParts.add('활동: ${health.summary}');
       }
       
@@ -402,13 +404,26 @@ class _DiaryCreateScreenState extends ConsumerState<DiaryCreateScreen> {
       final tagSources = _tags.map((t) => DiarySource(type: 'tag', appName: 'user', contentPreview: t, selected: true)).toList();
       final selectedPhotosPaths = _selectedPhotos.map((s) => s.imagePath ?? s.imageFile?.path ?? '').where((p) => p.isNotEmpty).toList();
 
+      // Add health info as source
+      final health = ref.read(todayHealthProvider).valueOrNull;
+      List<DiarySource> allSources = [...tagSources];
+      if (health != null && health.steps > 0) {
+        allSources.add(DiarySource(
+          type: 'steps',
+          appName: 'health',
+          contentPreview: '${health.steps}걸음',
+          selected: true,
+        ));
+      }
+
+      // Content is saved as-is (don't add mood emoji to content)
+      // Mood is stored separately in the mood field
       String content = _contentController.text;
-      if (content.isEmpty) {
-        // Generate minimal content from available info
-        List<String> parts = [];
-        if (_selectedMood != null) parts.add('${_selectedMood!.emoji} ${_selectedMood!.label}');
-        if (_tags.isNotEmpty) parts.add(_tags.map((t) => '#$t').join(' '));
-        content = parts.join(' ');
+      
+      // If content is empty (manual save without text), use mood as content
+      // If AI generated (content is not empty), this block is skipped, so only AI text is saved.
+      if (content.isEmpty && _selectedMood != null) {
+        content = '${_selectedMood!.emoji} ${_selectedMood!.label}';
       }
 
       if (widget.diary != null) {
@@ -417,11 +432,13 @@ class _DiaryCreateScreenState extends ConsumerState<DiaryCreateScreen> {
           content: content,
           mood: _selectedMood?.value,
           weather: _weather,
-          sources: tagSources,
+          sources: allSources,
           photos: selectedPhotosPaths,
           isAiGenerated: _isAiGenerated || widget.diary!.isAiGenerated,
           incrementEditCount: _isAiGenerated,
         );
+        // Update both providers for compatibility
+        ref.read(infiniteScrollDiaryListProvider.notifier).refresh();
         ref.read(diaryListProvider.notifier).updateDiary(updatedDiary);
       } else {
         final diary = await ref.read(diaryRepositoryProvider).createDiary(
@@ -429,10 +446,12 @@ class _DiaryCreateScreenState extends ConsumerState<DiaryCreateScreen> {
           content: content,
           mood: _selectedMood?.value,
           weather: _weather,
-          sources: tagSources,
+          sources: allSources,
           photos: selectedPhotosPaths,
           isAiGenerated: _isAiGenerated,
         );
+        // Add to infinite scroll list for immediate display
+        ref.read(infiniteScrollDiaryListProvider.notifier).addDiary(diary);
         ref.read(diaryListProvider.notifier).addDiary(diary);
       }
 
@@ -497,19 +516,73 @@ class _DiaryCreateScreenState extends ConsumerState<DiaryCreateScreen> {
                       ),
                       const SizedBox(width: 16),
                       healthAsync.when(
-                        data: (h) => Expanded(
-                          child: Row(
-                            children: [
-                              _buildHealthItem(Icons.directions_walk, '${h.steps}'),
-                              const SizedBox(width: 14),
-                              _buildHealthItem(Icons.timer_outlined, '${h.activeMinutes}분'),
-                              const SizedBox(width: 14),
-                              _buildHealthItem(Icons.local_fire_department, '${h.calories}kcal'),
-                            ],
+                        data: (h) => h.isEmpty
+                            ? Expanded(
+                                child: GestureDetector(
+                                  onTap: () {
+                                    final url = Platform.isIOS ? 'x-apple-health://' : 'https://fit.google.com';
+                                    launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication);
+                                  },
+                                  child: Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                                    decoration: BoxDecoration(
+                                      color: Colors.grey.shade100,
+                                      borderRadius: BorderRadius.circular(8),
+                                    ),
+                                    child: Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        Icon(Icons.directions_run, size: 16, color: Colors.grey.shade500),
+                                        const SizedBox(width: 6),
+                                        Text(
+                                          '건강 앱 연결 필요',
+                                          style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
+                                        ),
+                                        const SizedBox(width: 4),
+                                        Icon(Icons.chevron_right, size: 16, color: Colors.grey.shade500),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                              )
+                            : Expanded(
+                                child: Row(
+                                  children: [
+                                    _buildHealthItem(Icons.directions_walk, '${h.steps}'),
+                                    const SizedBox(width: 14),
+                                    _buildHealthItem(Icons.timer_outlined, '${h.activeMinutes}분'),
+                                    const SizedBox(width: 14),
+                                    _buildHealthItem(Icons.local_fire_department, '${h.calories.toInt()}kcal'),
+                                  ],
+                                ),
+                              ),
+                        loading: () => const Expanded(child: LinearProgressIndicator()),
+                        error: (_, __) => Expanded(
+                          child: GestureDetector(
+                            onTap: () {
+                              final url = Platform.isIOS ? 'x-apple-health://' : 'https://fit.google.com';
+                              launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication);
+                            },
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                              decoration: BoxDecoration(
+                                color: Colors.red.shade50,
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(Icons.error_outline, size: 16, color: Colors.red.shade400),
+                                  const SizedBox(width: 6),
+                                  Text(
+                                    '건강 정보 불러오기 실패',
+                                    style: TextStyle(fontSize: 12, color: Colors.red.shade600),
+                                  ),
+                                ],
+                              ),
+                            ),
                           ),
                         ),
-                        loading: () => const Expanded(child: LinearProgressIndicator()),
-                        error: (_, __) => const Text('-'),
                       ),
                     ],
                   ),
@@ -537,7 +610,7 @@ class _DiaryCreateScreenState extends ConsumerState<DiaryCreateScreen> {
                     ),
                     onSubmitted: _addTag,
                     onChanged: (val) {
-                      if (val.endsWith(',') || val.endsWith(' ')) _addTag(val.substring(0, val.length - 1));
+                      if (val.endsWith(' ')) _addTag(val.substring(0, val.length - 1));
                     },
                   ),
                   if (_filteredTags.isNotEmpty)
@@ -769,8 +842,9 @@ class _DiaryCreateScreenState extends ConsumerState<DiaryCreateScreen> {
         return GestureDetector(
           onTap: () {
             setState(() => _selectedMood = m);
-            // Free version: insert mood phrase at beginning
-            if (!isPro) {
+            
+            // Only insert mood phrase if NOT AI generated
+            if (!_isAiGenerated) {
               final currentText = _contentController.text;
               // Check if first line already has a mood phrase
               final lines = currentText.split('\n');

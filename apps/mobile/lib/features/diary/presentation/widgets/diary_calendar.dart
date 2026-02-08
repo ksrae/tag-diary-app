@@ -12,62 +12,35 @@ class DiaryCalendar extends ConsumerStatefulWidget {
 
 class _DiaryCalendarState extends ConsumerState<DiaryCalendar> {
   CalendarFormat _calendarFormat = CalendarFormat.month;
-  DateTime _focusedDay = DateTime.now();
-  DateTime? _selectedDay;
-  DateTime? _rangeStart;
-  DateTime? _rangeEnd;
 
   @override
   Widget build(BuildContext context) {
     final diaryDatesAsync = ref.watch(diaryDatesProvider);
     final dates = diaryDatesAsync.valueOrNull ?? [];
+    final selectedDate = ref.watch(selectedDateProvider);
+    final theme = Theme.of(context);
 
     return TableCalendar<bool>(
       firstDay: DateTime.utc(2020, 1, 1),
       lastDay: DateTime.utc(2030, 12, 31),
-      focusedDay: _focusedDay,
+      focusedDay: selectedDate,
       calendarFormat: _calendarFormat,
-      rangeSelectionMode: RangeSelectionMode.toggledOn,
       
-      selectedDayPredicate: (day) => isSameDay(_selectedDay, day),
-      rangeStartDay: _rangeStart,
-      rangeEndDay: _rangeEnd,
+      // Single date selection only (no range)
+      rangeSelectionMode: RangeSelectionMode.disabled,
+      
+      selectedDayPredicate: (day) => isSameDay(selectedDate, day),
       
       eventLoader: (day) {
         // Simple check if day has any diary entry
-        // We normalize dates to year-month-day in repository, so simple comparison
         final normalizedDay = DateTime(day.year, day.month, day.day);
         return dates.any((d) => isSameDay(d, normalizedDay)) ? [true] : [];
       },
       
       onDaySelected: (selectedDay, focusedDay) {
-        if (!isSameDay(_selectedDay, selectedDay)) {
-          setState(() {
-            _selectedDay = selectedDay;
-            _focusedDay = focusedDay;
-            _rangeStart = null;
-            _rangeEnd = null;
-          });
-          
-          // Filter provider update (Start of day to End of day)
-          ref.read(diaryFilterProvider.notifier).setRange(selectedDay, selectedDay);
-        }
-      },
-      
-      onRangeSelected: (start, end, focusedDay) {
-        setState(() {
-          _selectedDay = null;
-          _focusedDay = focusedDay;
-          _rangeStart = start;
-          _rangeEnd = end;
-        });
-        
-        // Filter provider update
-        // If end is null, it means range selection is in progress (start only), 
-        // we can filter just for start day or wait. Usually wait or just show start.
-        if (start != null) {
-           ref.read(diaryFilterProvider.notifier).setRange(start, end ?? start);
-        }
+        // Update selected date and refresh diary list
+        ref.read(selectedDateProvider.notifier).setDate(selectedDay);
+        ref.read(infiniteScrollDiaryListProvider.notifier).refresh();
       },
 
       onFormatChanged: (format) {
@@ -79,31 +52,46 @@ class _DiaryCalendarState extends ConsumerState<DiaryCalendar> {
       },
       
       onPageChanged: (focusedDay) {
-        _focusedDay = focusedDay;
+        // Optionally update focused day
       },
       
       calendarStyle: CalendarStyle(
         markerDecoration: BoxDecoration(
-          color: Theme.of(context).primaryColor,
+          color: theme.colorScheme.primary,
           shape: BoxShape.circle,
         ),
+        markerSize: 6,
+        markersMaxCount: 1,
         todayDecoration: BoxDecoration(
-          color: Theme.of(context).primaryColor.withOpacity(0.5),
+          color: theme.colorScheme.primary.withOpacity(0.3),
           shape: BoxShape.circle,
+        ),
+        todayTextStyle: TextStyle(
+          color: theme.colorScheme.onSurface,
+          fontWeight: FontWeight.bold,
         ),
         selectedDecoration: BoxDecoration(
-          color: Theme.of(context).primaryColor,
+          color: theme.colorScheme.primary,
           shape: BoxShape.circle,
         ),
-        rangeStartDecoration: BoxDecoration(
-          color: Theme.of(context).primaryColor,
-          shape: BoxShape.circle,
+        selectedTextStyle: TextStyle(
+          color: theme.colorScheme.onPrimary,
+          fontWeight: FontWeight.bold,
         ),
-        rangeEndDecoration: BoxDecoration(
-          color: Theme.of(context).primaryColor,
-          shape: BoxShape.circle,
+        outsideDaysVisible: false,
+      ),
+      
+      headerStyle: HeaderStyle(
+        formatButtonVisible: true,
+        titleCentered: true,
+        formatButtonDecoration: BoxDecoration(
+          border: Border.all(color: theme.colorScheme.outline),
+          borderRadius: BorderRadius.circular(8),
         ),
-        rangeHighlightColor: Theme.of(context).primaryColor.withOpacity(0.2),
+        formatButtonTextStyle: TextStyle(
+          color: theme.colorScheme.primary,
+          fontSize: 12,
+        ),
       ),
     );
   }
