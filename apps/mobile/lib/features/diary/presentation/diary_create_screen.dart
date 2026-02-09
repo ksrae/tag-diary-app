@@ -237,7 +237,15 @@ class _DiaryCreateScreenState extends ConsumerState<DiaryCreateScreen> {
       _selectedMood != null || 
       _selectedPhotos.isNotEmpty;
 
-  void _showAiGenerationModal() {
+  Future<int> _getAiRemainingCount() async {
+    final prefs = await SharedPreferences.getInstance();
+    final today = DateTime.now().toIso8601String().split('T')[0];
+    final key = 'ai_usage_$today';
+    final count = prefs.getInt(key) ?? 0;
+    return 3 - count; // Max 3 per day
+  }
+
+  Future<void> _showAiGenerationModal() async {
     // Validate: must have some info for AI to use
     if (!_hasAnyInfo) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -252,9 +260,11 @@ class _DiaryCreateScreenState extends ConsumerState<DiaryCreateScreen> {
     final healthAsync = ref.read(todayHealthProvider);
     final health = healthAsync.valueOrNull;
 
-    showModalBottomSheet(
+    final result = await showModalBottomSheet<String>(
       context: context,
       isScrollControlled: true,
+      isDismissible: false, // Prevent dismissing during generation
+      enableDrag: false,
       builder: (context) => AiGenerationModal(
         photos: _selectedPhotos, // Only pass selected photos
         healthInfo: health,
@@ -264,133 +274,101 @@ class _DiaryCreateScreenState extends ConsumerState<DiaryCreateScreen> {
         onGenerate: _generateWithAI,
       ),
     );
+
+    // Handle result from modal
+    if (result != null && result.isNotEmpty && mounted) {
+      setState(() {
+        _contentController.text = result;
+        _isAiGenerated = true;
+      });
+      
+      // Auto-save the diary after AI generation
+      await _saveDiary();
+    }
   }
 
-  Future<void> _generateWithAI(List<SourceItem> selectedPhotos, bool includeHealth, String customPrompt, String selectedStyle) async {
+
+  Future<String> _generateWithAI(List<SourceItem> selectedPhotos, bool includeHealth, String customPrompt, String selectedStyle) async {
     final isPro = ref.read(isProProvider);
+    
+    // Free users cannot use AI at all
     if (!isPro) {
-      final prefs = await SharedPreferences.getInstance();
-      final today = DateTime.now().toIso8601String().split('T')[0];
-      final key = 'ai_usage_$today';
-      final count = prefs.getInt(key) ?? 0;
-
-      if (count >= 3) {
-        if (mounted) {
-          showDialog(
-            context: context,
-            builder: (context) => AlertDialog(
-              title: const Text('일일 사용량 초과'),
-              content: const Text('무료 버전은 하루 3회까지 AI 일기를 생성할 수 있습니다.'),
-              actions: [
-                TextButton(onPressed: () => Navigator.pop(context), child: const Text('취소')),
-                FilledButton(
-                  onPressed: () {
-                    Navigator.pop(context);
-                    Navigator.push(context, MaterialPageRoute(builder: (_) => const PaywallScreen()));
-                  },
-                  child: const Text('업그레이드'),
-                ),
-              ],
-            ),
-          );
-        }
-        return;
-      }
+      throw Exception('Pro 전용 기능입니다. AI 일기 작성은 Pro 사용자만 이용할 수 있습니다.');
     }
 
-    setState(() => _isLoading = true);
+    // Pro users: Check daily limit (3 per day)
+    final prefs = await SharedPreferences.getInstance();
+    final today = DateTime.now().toIso8601String().split('T')[0];
+    final key = 'ai_usage_$today';
+    final count = prefs.getInt(key) ?? 0;
 
-    try {
-      final health = await ref.read(todayHealthProvider.future);
-      final weather = await ref.read(currentWeatherProvider.future);
-      _weather = weather;
-
-      // Build context from user-provided info only
-      List<String> contextParts = [];
-      
-      if (_tags.isNotEmpty) {
-        contextParts.add('태그: ${_tags.join(", ")}');
-      }
-      
-      if (_selectedMood != null) {
-        contextParts.add('기분: ${_selectedMood!.label}');
-      }
-      
-      contextParts.add('날씨: ${weather.temp}°C ${weather.condition}');
-      
-      if (includeHealth && !health.isEmpty) {
-        contextParts.add('활동: ${health.summary}');
-      }
-      
-      if (selectedPhotos.isNotEmpty) {
-        contextParts.add('사진 ${selectedPhotos.length}장 첨부');
-      }
-
-      String contextData = contextParts.join('\n');
-
-      String stylePrompt = '';
-      switch (selectedStyle) {
-        case 'sn_style':
-          stylePrompt = 'SNS 업로드용으로 해시태그와 함께 경쾌하게 작성해줘.';
-          break;
-        case 'basic_style':
-          stylePrompt = '담백하고 솔직한 일기 스타일로 작성해줘.';
-          break;
-        case 'poem_style':
-          stylePrompt = '감성적인 시 형식으로 작성해줘.';
-          break;
-        case 'letter_style':
-          stylePrompt = '미래의 나에게 쓰는 편지 형식으로 따뜻하게 작성해줘.';
-          break;
-      }
-
-      if (customPrompt.isNotEmpty) {
-        stylePrompt += ' 추가 요청: $customPrompt';
-      }
-
-      final aiService = ref.read(aiServiceProvider);
-      final result = await aiService.generateDiary(
-        images: selectedPhotos.take(3).where((p) => p.imageFile != null).map((i) => i.imageFile!).toList(),
-        contextData: contextData,
-        mood: _selectedMood?.label,
-        weather: weather.toJson(),
-        sources: _tags.map((t) => {'type': 'tag', 'appName': 'user', 'contentPreview': t, 'selected': true}).toList(),
-        userPrompt: stylePrompt,
-      );
-
-      if (!isPro) {
-        final prefs = await SharedPreferences.getInstance();
-        final today = DateTime.now().toIso8601String().split('T')[0];
-        final key = 'ai_usage_$today';
-        final count = prefs.getInt(key) ?? 0;
-        await prefs.setInt(key, count + 1);
-      }
-
-      if (mounted) {
-        setState(() {
-          _contentController.text = result;
-          _isAiGenerated = true;
-        });
-      }
-    } catch (e) {
-      if (mounted) {
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (_) => DiaryErrorScreen(
-              errorMessage: e.toString(),
-              onRetry: () {
-                Navigator.pop(context);
-                _showAiGenerationModal();
-              },
-            ),
-          ),
-        );
-      }
-    } finally {
-      if (mounted) setState(() => _isLoading = false);
+    if (count >= 3) {
+      throw Exception('일일 사용량 초과: 하루 3회까지 AI 일기를 생성할 수 있습니다.');
     }
+
+    final health = await ref.read(todayHealthProvider.future);
+    final weather = await ref.read(currentWeatherProvider.future);
+    _weather = weather;
+
+    // Build context from user-provided info only
+    List<String> contextParts = [];
+    
+    if (_tags.isNotEmpty) {
+      contextParts.add('태그: ${_tags.join(", ")}');
+    }
+    
+    if (_selectedMood != null) {
+      contextParts.add('기분: ${_selectedMood!.label}');
+    }
+    
+    contextParts.add('날씨: ${weather.temp}°C ${weather.condition}');
+    
+    if (includeHealth && !health.isEmpty) {
+      contextParts.add('활동: ${health.summary}');
+    }
+    
+    if (selectedPhotos.isNotEmpty) {
+      contextParts.add('사진 ${selectedPhotos.length}장 첨부');
+    }
+
+    String contextData = contextParts.join('\n');
+
+    String stylePrompt = '';
+    switch (selectedStyle) {
+      case 'sn_style':
+        stylePrompt = 'SNS 업로드용으로 해시태그와 함께 경쾌하게 작성해줘.';
+        break;
+      case 'basic_style':
+        stylePrompt = '담백하고 솔직한 일기 스타일로 작성해줘.';
+        break;
+      case 'poem_style':
+        stylePrompt = '감성적인 시 형식으로 작성해줘.';
+        break;
+      case 'letter_style':
+        stylePrompt = '미래의 나에게 쓰는 편지 형식으로 따뜻하게 작성해줘.';
+        break;
+    }
+
+    if (customPrompt.isNotEmpty) {
+      stylePrompt += ' 추가 요청: $customPrompt';
+    }
+
+    final aiService = ref.read(aiServiceProvider);
+    final result = await aiService.generateDiary(
+      images: selectedPhotos.take(3).where((p) => p.imageFile != null).map((i) => i.imageFile!).toList(),
+      contextData: contextData,
+      mood: _selectedMood?.label,
+      weather: weather.toJson(),
+      sources: _tags.map((t) => {'type': 'tag', 'appName': 'user', 'contentPreview': t, 'selected': true}).toList(),
+      userPrompt: stylePrompt,
+    );
+
+    // Increment usage count AFTER successful generation
+    await prefs.setInt(key, count + 1);
+
+    return result;
   }
+
 
   Future<void> _saveDiary() async {
     if (_contentController.text.isEmpty && _tags.isEmpty && _selectedMood == null) {
@@ -766,15 +744,25 @@ class _DiaryCreateScreenState extends ConsumerState<DiaryCreateScreen> {
 
                   const SizedBox(height: 24),
 
-                  // 5. AI Button (Pro only)
+                  // 5. AI Button (Pro only with remaining count)
                   if (isPro)
-                    SizedBox(
-                      width: double.infinity,
-                      child: FilledButton.icon(
-                        onPressed: _showAiGenerationModal,
-                        icon: const Icon(Icons.auto_awesome),
-                        label: const Text('AI로 일기 생성'),
-                      ),
+                    FutureBuilder<int>(
+                      future: _getAiRemainingCount(),
+                      builder: (context, snapshot) {
+                        final remaining = snapshot.data ?? 3;
+                        final isDisabled = remaining <= 0;
+                        
+                        return SizedBox(
+                          width: double.infinity,
+                          child: FilledButton.icon(
+                            onPressed: isDisabled ? null : _showAiGenerationModal,
+                            icon: const Icon(Icons.auto_awesome),
+                            label: Text(remaining > 0 
+                              ? 'AI로 일기 생성 ($remaining회 남음)' 
+                              : 'AI 사용량 초과 (자정에 초기화)'),
+                          ),
+                        );
+                      },
                     ),
 
                   const SizedBox(height: 16),
