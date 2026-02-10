@@ -23,6 +23,7 @@ dependencies:
   hive: ^2.2.3
   hive_flutter: ^1.1.0
   flutter_secure_storage: ^9.0.0
+  encrypt: ^5.0.3
   path_provider: ^2.1.5
   image_picker: ^1.0.7
   photo_manager: 3.2.0
@@ -31,6 +32,7 @@ dependencies:
   shared_preferences: ^2.2.2
   flutter_contacts: ^1.1.9
   geolocator: ^11.0.0
+  geocoding: ^3.0.0
   # call_log: 4.0.0 # Removed - unnecessary complexity
   # telephony: ^0.2.0 # Removed - discontinued package with known crashes
   health: ^10.0.0
@@ -68,14 +70,7 @@ flutter_launcher_icons:
   image_path: "assets/icon.png"
   min_sdk_android: 21
 
-flutter_native_splash:
-  android: true
-  ios: false
-  color: "#311B92"
-  image: "assets/splash.png"
-  android_12:
-    image: "assets/splash.png"
-    color: "#311B92"
+
 
 flutter:
   generate: true
