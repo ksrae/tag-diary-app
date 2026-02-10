@@ -13,6 +13,7 @@ import 'package:mobile/features/diary/data/diary_repository.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:mobile/features/lock/application/lock_service.dart';
 import 'package:go_router/go_router.dart';
+import 'package:permission_handler/permission_handler.dart';
 
 /// Settings screen
 class SettingsScreen extends ConsumerStatefulWidget {
@@ -23,10 +24,10 @@ class SettingsScreen extends ConsumerStatefulWidget {
 }
 
 class _SettingsScreenState extends ConsumerState<SettingsScreen> {
-  // Settings values (mock for now, normally from prefs)
-  bool _collectGallery = true;
-  bool _collectCalendar = true;
-  bool _collectHealth = true;
+  // Feature flags
+  bool _collectLocation = false;
+  bool _collectNotification = false;
+  bool _collectHealth = false;
   bool _isLockEnabled = false;
   String _weatherRegion = 'Seoul';
 
@@ -40,9 +41,9 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     final prefs = await SharedPreferences.getInstance();
     if (mounted) {
       setState(() {
-        _collectGallery = prefs.getBool('collect_gallery') ?? true;
-        _collectCalendar = prefs.getBool('collect_calendar') ?? true;
-        _collectHealth = prefs.getBool('collect_health') ?? true;
+        _collectLocation = prefs.getBool('feature_location_enabled') ?? false;
+        _collectNotification = prefs.getBool('feature_notification_enabled') ?? false;
+        _collectHealth = prefs.getBool('feature_health_enabled') ?? false;
         _weatherRegion = prefs.getString('weather_region') ?? 'Seoul';
       });
       
@@ -135,7 +136,6 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               ),
             ),
 
-          // General section (Formerly part of Account)
           // General section
           _buildSectionHeader(context, '일반'),
           ListTile(
@@ -201,37 +201,33 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
 
           const Divider(),
 
-          // Data collection section
-          _buildSectionHeader(context, '데이터 수집'),
+          // Features & Permissions
+          _buildSectionHeader(context, '기능 및 권한'),
           SwitchListTile(
-            secondary: const Icon(Icons.photo),
-            title: const Text('갤러리'),
-            subtitle: const Text('오늘 찍은 사진 수집'),
-            value: _collectGallery,
-            onChanged: (value) {
-              setState(() => _collectGallery = value);
-              _updateSetting('collect_gallery', value);
-            },
+            secondary: const Icon(Icons.location_on),
+            title: const Text('위치 정보'),
+            subtitle: const Text('현재 위치와 날씨 자동 기록'),
+            value: _collectLocation,
+            onChanged: (value) => _togglePermission(
+              Permission.location, 
+              'feature_location_enabled', 
+              value, 
+              (v) => setState(() => _collectLocation = v)
+            ),
           ),
           SwitchListTile(
-            secondary: const Icon(Icons.calendar_today),
-            title: const Text('캘린더'),
-            subtitle: const Text('오늘 일정 수집'),
-            value: _collectCalendar,
-            onChanged: (value) {
-               setState(() => _collectCalendar = value);
-               _updateSetting('collect_calendar', value);
-            },
+            secondary: const Icon(Icons.notifications),
+            title: const Text('알림'),
+            subtitle: const Text('일기 작성 리마인더'),
+            value: _collectNotification,
+            onChanged: (value) => _togglePermission(Permission.notification, 'feature_notification_enabled', value, (v) => setState(() => _collectNotification = v)),
           ),
           SwitchListTile(
-            secondary: const Icon(Icons.directions_run),
-            title: const Text('오늘의 헬스정보'),
-            subtitle: const Text('걸음 수, 활동 시간, 칼로리 수집'),
+            secondary: const Icon(Icons.health_and_safety),
+            title: const Text('건강 정보 (Google Fit)'),
+            subtitle: const Text('걸음 수 및 활동량 기록'),
             value: _collectHealth,
-            onChanged: (value) {
-               setState(() => _collectHealth = value);
-               _updateSetting('collect_health', value);
-            },
+            onChanged: (value) => _togglePermission(Permission.activityRecognition, 'feature_health_enabled', value, (v) => setState(() => _collectHealth = v)),
           ),
           const Divider(),
 
@@ -461,6 +457,68 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           SnackBar(content: Text('데이터 불러오기 실패: $e')),
         );
       }
+    }
+  }
+  Future<void> _togglePermission(
+    Permission permission, 
+    String key, 
+    bool value, 
+    Function(bool) onUpdate
+  ) async {
+    final prefs = await SharedPreferences.getInstance();
+
+    if (value) {
+      // User wants to ENABLE feature
+      // 1. Check current status
+      var status = await permission.status;
+      
+      if (status.isGranted) {
+        onUpdate(true);
+        await prefs.setBool(key, true);
+      } else {
+        // 2. Request permission
+        final result = await permission.request();
+        if (result.isGranted) {
+          onUpdate(true);
+          await prefs.setBool(key, true);
+        } else if (result.isPermanentlyDenied) {
+          // 3. Show settings dialog if permanently denied
+          if (mounted) {
+             showDialog(
+              context: context,
+              builder: (ctx) => AlertDialog(
+                title: const Text('권한 설정 필요'),
+                content: const Text('해당 기능을 사용하려면 설정에서 권한을 허용해야 합니다.'),
+                actions: [
+                  TextButton(
+                    onPressed: () => Navigator.pop(ctx),
+                    child: const Text('취소'),
+                  ),
+                  TextButton(
+                    onPressed: () {
+                      Navigator.pop(ctx);
+                      openAppSettings();
+                    },
+                    child: const Text('설정으로 이동'),
+                  ),
+                ],
+              ),
+            );
+          }
+          // Reset toggle to false until they actually grant it
+          onUpdate(false);
+          await prefs.setBool(key, false);
+        } else {
+           // Normal denial
+           onUpdate(false);
+           await prefs.setBool(key, false);
+        }
+      }
+    } else {
+      // User wants to DISABLE feature
+      // Just save preference, permission remains granted in system but app won't use it
+      onUpdate(false);
+      await prefs.setBool(key, false);
     }
   }
 }

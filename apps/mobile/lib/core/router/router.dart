@@ -9,6 +9,7 @@ import 'package:mobile/features/auth/presentation/signup_screen.dart';
 import 'package:mobile/features/settings/presentation/settings_screen.dart';
 import 'package:mobile/features/lock/presentation/pin_setup_screen.dart';
 import 'package:mobile/features/lock/presentation/lock_screen.dart';
+import 'package:mobile/features/onboarding/presentation/permission_screen.dart';
 
 part 'router.g.dart';
 
@@ -57,6 +58,11 @@ GoRouter router(Ref ref) {
       GoRoute(
         path: '/lock',
         builder: (context, state) => const LockScreen(),
+      ),
+      // Onboarding
+      GoRoute(
+        path: '/onboarding',
+        builder: (context, state) => const PermissionScreen(),
       ),
     ],
   );
