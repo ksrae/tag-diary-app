@@ -133,20 +133,8 @@ class _DiaryCreateScreenState extends ConsumerState<DiaryCreateScreen> {
         assets = await recentAlbum.getAssetListRange(start: 0, end: 30);
       }
       
-      // If no photos today, try recent photos (last 7 days)
-      if (assets.isEmpty) {
-        filterOption = FilterOptionGroup(
-          createTimeCond: DateTimeCond(
-            min: now.subtract(const Duration(days: 7)),
-            max: endOfDay,
-          ),
-          orders: [const OrderOption(type: OrderOptionType.createDate, asc: false)],
-        );
-        albums = await PhotoManager.getAssetPathList(type: RequestType.image, filterOption: filterOption);
-        if (albums.isNotEmpty) {
-          assets = await albums.first.getAssetListRange(start: 0, end: 20);
-        }
-      }
+      // Fallback removed: Only valid photos for today are shown automatically.
+      // Users can manually add older photos.
 
       await _processPhotoAssets(assets);
     } catch (e) {
