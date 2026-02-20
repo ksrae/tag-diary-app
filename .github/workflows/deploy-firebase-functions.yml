@@ -35,4 +35,4 @@ jobs:
       - name: Deploy to Firebase Functions
         env:
           FIREBASE_TOKEN: ${{ secrets.FIREBASE_TOKEN }}
-        run: firebase deploy --only functions --non-interactive --project tagdiary-98ce1
+        run: firebase deploy --only functions --non-interactive --project tag-diary-c50e2
