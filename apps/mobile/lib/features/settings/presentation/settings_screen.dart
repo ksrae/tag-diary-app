@@ -1,6 +1,5 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
-import 'package:geolocator/geolocator.dart';
 import 'package:mobile/core/services/location_service.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:share_plus/share_plus.dart';
@@ -13,7 +12,11 @@ import 'package:mobile/features/diary/data/diary_repository.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:mobile/features/lock/application/lock_service.dart';
 import 'package:go_router/go_router.dart';
+import 'package:mobile/features/shared/application/weather_service.dart';
 import 'package:permission_handler/permission_handler.dart';
+import 'package:dio/dio.dart';
+import 'package:flutter_map/flutter_map.dart';
+import 'package:latlong2/latlong.dart';
 
 /// Settings screen
 class SettingsScreen extends ConsumerStatefulWidget {
@@ -24,12 +27,12 @@ class SettingsScreen extends ConsumerStatefulWidget {
 }
 
 class _SettingsScreenState extends ConsumerState<SettingsScreen> {
-  // Feature flags
-  bool _collectLocation = false;
-  bool _collectNotification = false;
   bool _collectHealth = false;
   bool _isLockEnabled = false;
-  String _weatherRegion = 'Seoul';
+  // Notification settings for preview
+  bool _isNotificationEnabled = false;
+  bool _isAllNotificationsEnabled = false;
+  String _notificationTime = '';
 
   @override
   void initState() {
@@ -41,10 +44,19 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     final prefs = await SharedPreferences.getInstance();
     if (mounted) {
       setState(() {
-        _collectLocation = prefs.getBool('feature_location_enabled') ?? false;
-        _collectNotification = prefs.getBool('feature_notification_enabled') ?? false;
         _collectHealth = prefs.getBool('feature_health_enabled') ?? false;
-        _weatherRegion = prefs.getString('weather_region') ?? 'Seoul';
+        
+        _isAllNotificationsEnabled = prefs.getBool('feature_all_notifications_enabled') ?? false;
+        _isNotificationEnabled = prefs.getBool('feature_notification_enabled') ?? false;
+        
+        if (_isAllNotificationsEnabled) {
+           final hour = prefs.getInt('notification_hour') ?? 9;
+           // Format: "오후 1시"
+           final isPm = hour >= 12;
+           final displayHour = hour == 0 ? 12 : (hour > 12 ? hour - 12 : hour);
+           final period = isPm ? '오후' : '오전';
+           _notificationTime = '$period $displayHour시';
+        }
       });
       
       // Load lock state
@@ -64,6 +76,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isPro = ref.watch(isProProvider);
+    final savedLocationAsync = ref.watch(savedLocationProvider);
 
     return Scaffold(
       appBar: AppBar(
@@ -147,14 +160,53 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               _showLanguageDialog(context);
             },
           ),
-          ListTile(
-            leading: const Icon(Icons.cloud),
-            title: const Text('날씨 지역'),
-            subtitle: Text(_weatherRegion),
-            trailing: const Icon(Icons.chevron_right),
-            onTap: () {
-              _showWeatherRegionDialog(context);
+          // Weather / Location - inside General section
+          savedLocationAsync.when(
+            data: (location) {
+              if (location != null) {
+                return ListTile(
+                  leading: const Icon(Icons.wb_sunny, color: Colors.orange),
+                  title: const Text('날씨 / 지역'),
+                  subtitle: Text(location.city, style: TextStyle(color: Colors.blue.shade700, fontWeight: FontWeight.w500)),
+                  trailing: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      IconButton(
+                        icon: Icon(Icons.close, size: 18, color: Colors.grey.shade400),
+                        tooltip: '지역 초기화',
+                        onPressed: () async {
+                          final service = ref.read(locationServiceProvider);
+                          await service.clearLocation();
+                          ref.invalidate(savedLocationProvider);
+                          ref.invalidate(currentWeatherProvider);
+                        },
+                      ),
+                      const Icon(Icons.chevron_right),
+                    ],
+                  ),
+                  onTap: () => _showLocationSettingSheet(context),
+                );
+              }
+              return ListTile(
+                leading: Icon(Icons.wb_sunny_outlined, color: Colors.grey.shade400),
+                title: const Text('날씨 / 지역'),
+                subtitle: const Text('지역을 설정하면 날씨를 자동으로 가져옵니다'),
+                trailing: const Icon(Icons.chevron_right),
+                onTap: () => _showLocationSettingSheet(context),
+              );
             },
+            loading: () => const ListTile(
+              leading: Icon(Icons.wb_sunny_outlined),
+              title: Text('날씨 / 지역'),
+              subtitle: Text('로딩 중...'),
+            ),
+            error: (_, __) => ListTile(
+              leading: Icon(Icons.wb_sunny_outlined, color: Colors.grey.shade400),
+              title: const Text('날씨 / 지역'),
+              subtitle: const Text('지역을 설정해주세요'),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: () => _showLocationSettingSheet(context),
+            ),
           ),
           const Divider(),
 
@@ -203,24 +255,15 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
 
           // Features & Permissions
           _buildSectionHeader(context, '기능 및 권한'),
-          SwitchListTile(
-            secondary: const Icon(Icons.location_on),
-            title: const Text('위치 정보'),
-            subtitle: const Text('현재 위치와 날씨 자동 기록'),
-            value: _collectLocation,
-            onChanged: (value) => _togglePermission(
-              Permission.location, 
-              'feature_location_enabled', 
-              value, 
-              (v) => setState(() => _collectLocation = v)
-            ),
-          ),
-          SwitchListTile(
-            secondary: const Icon(Icons.notifications),
-            title: const Text('알림'),
-            subtitle: const Text('일기 작성 리마인더'),
-            value: _collectNotification,
-            onChanged: (value) => _togglePermission(Permission.notification, 'feature_notification_enabled', value, (v) => setState(() => _collectNotification = v)),
+          ListTile(
+            leading: const Icon(Icons.notifications),
+            title: const Text('알림 설정'),
+            subtitle: Text(_isAllNotificationsEnabled ? '매일 $_notificationTime' : '꺼짐'),
+            trailing: const Icon(Icons.chevron_right),
+            onTap: () async {
+              await context.push('/settings/notification');
+              _loadSettings(); // Refresh settings when returning
+            },
           ),
           SwitchListTile(
             secondary: const Icon(Icons.health_and_safety),
@@ -235,7 +278,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           _buildSectionHeader(context, '데이터 관리'),
           ListTile(
             leading: const Icon(Icons.upload_file),
-            title: const Text('전체 일기 백업'), // Changed from json export to user request
+            title: const Text('전체 일기 백업'),
             subtitle: const Text('현재까지의 모든 일기를 파일로 저장합니다'),
             onTap: () => _exportData(context, ref),
           ),
@@ -282,6 +325,25 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     );
   }
 
+  /// Show location setting bottom sheet with search and GPS button
+  void _showLocationSettingSheet(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      useSafeArea: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) => _LocationSettingSheet(
+        onLocationSaved: () {
+          // Invalidate providers to refresh weather
+          ref.invalidate(savedLocationProvider);
+          ref.invalidate(currentWeatherProvider);
+        },
+      ),
+    );
+  }
+
   void _showLanguageDialog(BuildContext context) {
     showDialog(
       context: context,
@@ -319,89 +381,6 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       ),
     );
   }
-
-  void _showWeatherRegionDialog(BuildContext context) {
-    final TextEditingController cityController = TextEditingController(text: _weatherRegion);
-    final regions = [
-      'Seoul', 'Tokyo', 'New York', 'London', 'Paris', 'Berlin', 'Sydney', 'Singapore'
-    ];
-    
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('날씨 지역 설정'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Text('도시 이름을 영문으로 입력하거나 목록에서 선택하세요.', style: TextStyle(fontSize: 12, color: Colors.grey)),
-            const SizedBox(height: 16),
-            TextField(
-              controller: cityController,
-              decoration: const InputDecoration(
-                hintText: '예: London, New York, Busan',
-                labelText: '도시 이름',
-                border: OutlineInputBorder(),
-                prefixIcon: Icon(Icons.search),
-              ),
-            ),
-            const SizedBox(height: 16),
-            SizedBox(
-              height: 200,
-              width: double.maxFinite,
-              child: ListView.builder(
-                shrinkWrap: true,
-                itemCount: regions.length,
-                itemBuilder: (context, index) {
-                  final region = regions[index];
-                  return ListTile(
-                    title: Text(region),
-                    dense: true,
-                    onTap: () => cityController.text = region,
-                  );
-                },
-              ),
-            ),
-          ],
-        ),
-        actions: [
-          TextButton.icon(
-            onPressed: () async {
-              final service = ref.read(locationServiceProvider);
-              final hasPermission = await service.requestPermission();
-              if (hasPermission) {
-                setState(() => _weatherRegion = '');
-                final prefs = await SharedPreferences.getInstance();
-                await prefs.setString('weather_region', '');
-                await service.init(); // fetch location
-                if (mounted) Navigator.pop(context);
-              } else {
-                await Geolocator.openAppSettings();
-              }
-            },
-            icon: const Icon(Icons.my_location, size: 16),
-            label: const Text('현재 위치 사용'),
-          ),
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('취소'),
-          ),
-          FilledButton(
-            onPressed: () async {
-              final newRegion = cityController.text.trim();
-              if (newRegion.isNotEmpty) {
-                setState(() => _weatherRegion = newRegion);
-                final prefs = await SharedPreferences.getInstance();
-                await prefs.setString('weather_region', newRegion);
-              }
-              if (mounted) Navigator.pop(context);
-            },
-            child: const Text('저장'),
-          ),
-        ],
-      ),
-    );
-  }
-
 
   Future<void> _exportData(BuildContext context, WidgetRef ref) async {
     try {
@@ -459,6 +438,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       }
     }
   }
+
   Future<void> _togglePermission(
     Permission permission, 
     String key, 
@@ -469,20 +449,17 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
 
     if (value) {
       // User wants to ENABLE feature
-      // 1. Check current status
       var status = await permission.status;
       
       if (status.isGranted) {
         onUpdate(true);
         await prefs.setBool(key, true);
       } else {
-        // 2. Request permission
         final result = await permission.request();
         if (result.isGranted) {
           onUpdate(true);
           await prefs.setBool(key, true);
         } else if (result.isPermanentlyDenied) {
-          // 3. Show settings dialog if permanently denied
           if (mounted) {
              showDialog(
               context: context,
@@ -505,20 +482,476 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               ),
             );
           }
-          // Reset toggle to false until they actually grant it
           onUpdate(false);
           await prefs.setBool(key, false);
         } else {
-           // Normal denial
            onUpdate(false);
            await prefs.setBool(key, false);
         }
       }
     } else {
       // User wants to DISABLE feature
-      // Just save preference, permission remains granted in system but app won't use it
       onUpdate(false);
       await prefs.setBool(key, false);
     }
   }
+}
+
+/// Bottom sheet for setting weather location
+class _LocationSettingSheet extends ConsumerStatefulWidget {
+  final VoidCallback onLocationSaved;
+
+  const _LocationSettingSheet({required this.onLocationSaved});
+
+  @override
+  ConsumerState<_LocationSettingSheet> createState() => _LocationSettingSheetState();
+}
+
+class _LocationSettingSheetState extends ConsumerState<_LocationSettingSheet> {
+  final TextEditingController _searchController = TextEditingController();
+  final Dio _dio = Dio();
+  List<_GeoSearchResult> _searchResults = [];
+  bool _isSearching = false;
+  bool _isGpsLoading = false;
+  bool _isReverseGeocoding = false;
+
+  // Selected location for map preview (before closing)
+  _GeoSearchResult? _selectedResult;
+
+  // Map controller to move the map when tapping
+  final MapController _mapController = MapController();
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    _mapController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _searchLocation(String query) async {
+    if (query.trim().isEmpty) {
+      setState(() => _searchResults = []);
+      return;
+    }
+
+    setState(() => _isSearching = true);
+    try {
+      final response = await _dio.get(
+        'https://geocoding-api.open-meteo.com/v1/search',
+        queryParameters: {
+          'name': query,
+          'count': 10,
+          'language': 'ko',
+          'format': 'json',
+        },
+      );
+
+      if (response.statusCode == 200 && response.data['results'] != null) {
+        final results = (response.data['results'] as List).map((r) {
+          return _GeoSearchResult(
+            name: r['name'] as String? ?? '',
+            country: r['country'] as String? ?? '',
+            admin1: r['admin1'] as String? ?? '',
+            latitude: (r['latitude'] as num).toDouble(),
+            longitude: (r['longitude'] as num).toDouble(),
+          );
+        }).toList();
+        setState(() => _searchResults = results);
+      } else {
+        setState(() => _searchResults = []);
+      }
+    } catch (_) {
+      setState(() => _searchResults = []);
+    } finally {
+      setState(() => _isSearching = false);
+    }
+  }
+
+  Future<void> _useCurrentLocation() async {
+    setState(() => _isGpsLoading = true);
+    try {
+      final locationService = ref.read(locationServiceProvider);
+      final result = await locationService.updateLocationFromGPS();
+      if (result != null && mounted) {
+        widget.onLocationSaved();
+        // Show map preview instead of closing
+        setState(() {
+          _selectedResult = _GeoSearchResult(
+            name: result.city,
+            country: '',
+            admin1: '',
+            latitude: result.latitude,
+            longitude: result.longitude,
+          );
+          _searchResults = [];
+          _searchController.clear();
+        });
+      } else if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('위치를 가져올 수 없습니다. 위치 권한을 확인해주세요.')),
+        );
+      }
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('위치 가져오기 실패')),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isGpsLoading = false);
+    }
+  }
+
+  /// Handle map tap: reverse geocode and save the tapped location
+  Future<void> _onMapTap(TapPosition tapPosition, LatLng point) async {
+    // Immediately update marker position
+    setState(() {
+      _isReverseGeocoding = true;
+      _selectedResult = _GeoSearchResult(
+        name: '위치 확인 중...',
+        country: '',
+        admin1: '',
+        latitude: point.latitude,
+        longitude: point.longitude,
+      );
+    });
+
+    // Reverse geocode to get city name
+    final locationService = ref.read(locationServiceProvider);
+    String city = await locationService.reverseGeocode(point.latitude, point.longitude);
+    if (city.isEmpty) {
+      city = '선택한 위치';
+    }
+
+    // Save the location
+    await locationService.saveManualLocation(city, point.latitude, point.longitude);
+    widget.onLocationSaved();
+
+    if (mounted) {
+      setState(() {
+        _isReverseGeocoding = false;
+        _selectedResult = _GeoSearchResult(
+          name: city,
+          country: '',
+          admin1: '',
+          latitude: point.latitude,
+          longitude: point.longitude,
+        );
+      });
+    }
+  }
+
+  Future<void> _selectLocation(_GeoSearchResult result) async {
+    final locationService = ref.read(locationServiceProvider);
+    await locationService.saveManualLocation(
+      result.name,
+      result.latitude,
+      result.longitude,
+    );
+    widget.onLocationSaved();
+    if (mounted) {
+      // Show map preview instead of closing
+      setState(() {
+        _selectedResult = result;
+        _searchResults = [];
+        _searchController.clear();
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return DraggableScrollableSheet(
+      initialChildSize: 0.6,
+      minChildSize: 0.4,
+      maxChildSize: 0.9,
+      expand: false,
+      builder: (context, scrollController) => Column(
+        children: [
+          // Handle
+          Container(
+            margin: const EdgeInsets.only(top: 12),
+            width: 40,
+            height: 4,
+            decoration: BoxDecoration(
+              color: Colors.grey[300],
+              borderRadius: BorderRadius.circular(2),
+            ),
+          ),
+          // Title
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 12, 8, 8),
+            child: Row(
+              children: [
+                const Text(
+                  '날씨 / 지역',
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                ),
+                const Spacer(),
+                TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: const Text('닫기'),
+                ),
+              ],
+            ),
+          ),
+
+          // Search bar
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: TextField(
+              controller: _searchController,
+              decoration: InputDecoration(
+                hintText: '도시 이름으로 검색 (예: 서울, 부산)',
+                prefixIcon: const Icon(Icons.search),
+                suffixIcon: _searchController.text.isNotEmpty
+                    ? IconButton(
+                        icon: const Icon(Icons.clear, size: 18),
+                        onPressed: () {
+                          _searchController.clear();
+                          setState(() => _searchResults = []);
+                        },
+                      )
+                    : null,
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              ),
+              onChanged: (value) {
+                if (value.length >= 2) {
+                  _searchLocation(value);
+                } else {
+                  setState(() => _searchResults = []);
+                }
+              },
+            ),
+          ),
+          const SizedBox(height: 10),
+          // GPS button
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: SizedBox(
+              width: double.infinity,
+              child: OutlinedButton.icon(
+                onPressed: _isGpsLoading ? null : _useCurrentLocation,
+                icon: _isGpsLoading
+                    ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
+                    : const Icon(Icons.my_location, size: 18),
+                label: Text(_isGpsLoading ? 'GPS로 위치 확인 중...' : '현재 위치로 설정하기', style: const TextStyle(fontSize: 13)),
+                style: OutlinedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(height: 6),
+          const Divider(height: 1),
+
+          // Content area: search results OR map preview
+          Expanded(
+            child: _buildContentArea(scrollController),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildContentArea(ScrollController scrollController) {
+    // Show search results if searching or have results
+    if (_isSearching) {
+      return const Center(child: CircularProgressIndicator());
+    }
+
+    if (_searchResults.isNotEmpty) {
+      return ListView.builder(
+        controller: scrollController,
+        itemCount: _searchResults.length,
+        itemBuilder: (context, index) {
+          final result = _searchResults[index];
+          return ListTile(
+            leading: const Icon(Icons.location_on_outlined),
+            title: Text(result.name),
+            subtitle: Text(
+              [result.admin1, result.country]
+                  .where((s) => s.isNotEmpty)
+                  .join(', '),
+            ),
+            dense: true,
+            onTap: () => _selectLocation(result),
+          );
+        },
+      );
+    }
+
+    // Show map preview if a location is selected
+    if (_selectedResult != null) {
+      return _buildMapPreview(_selectedResult!);
+    }
+
+    // Default - show saved location map or empty state
+    final currentLocation = ref.watch(savedLocationProvider);
+    return currentLocation.when(
+      data: (loc) {
+        if (loc != null) {
+          return _buildMapPreview(_GeoSearchResult(
+            name: loc.city,
+            country: '',
+            admin1: '',
+            latitude: loc.latitude,
+            longitude: loc.longitude,
+          ));
+        }
+        return Center(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(Icons.map_outlined, size: 48, color: Colors.grey.shade300),
+              const SizedBox(height: 12),
+              Text(
+                '도시를 검색하거나\nGPS로 현재 위치를 감지하세요',
+                textAlign: TextAlign.center,
+                style: TextStyle(color: Colors.grey[400], fontSize: 14),
+              ),
+            ],
+          ),
+        );
+      },
+      loading: () => const Center(child: CircularProgressIndicator()),
+      error: (_, __) => const SizedBox.shrink(),
+    );
+  }
+
+  Widget _buildMapPreview(_GeoSearchResult location) {
+    final center = LatLng(location.latitude, location.longitude);
+
+    return Column(
+      children: [
+        // Location info bar
+        Container(
+          width: double.infinity,
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+          color: Colors.blue.shade50,
+          child: Row(
+            children: [
+              Icon(Icons.location_on, size: 18, color: Colors.blue.shade700),
+              const SizedBox(width: 8),
+              Expanded(
+                child: _isReverseGeocoding
+                    ? Row(
+                        children: [
+                          SizedBox(
+                            width: 14,
+                            height: 14,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              color: Colors.blue.shade700,
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Text(
+                            '지역 확인 중...',
+                            style: TextStyle(
+                              color: Colors.blue.shade600,
+                              fontSize: 14,
+                            ),
+                          ),
+                        ],
+                      )
+                    : Text(
+                        location.name,
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          color: Colors.blue.shade800,
+                          fontSize: 14,
+                        ),
+                      ),
+              ),
+              if (!_isReverseGeocoding && (location.admin1.isNotEmpty || location.country.isNotEmpty))
+                Text(
+                  [location.admin1, location.country].where((s) => s.isNotEmpty).join(', '),
+                  style: TextStyle(fontSize: 11, color: Colors.blue.shade600),
+                ),
+            ],
+          ),
+        ),
+        // Map fills remaining space
+        Expanded(
+          child: ClipRRect(
+            borderRadius: const BorderRadius.only(
+              bottomLeft: Radius.circular(20),
+              bottomRight: Radius.circular(20),
+            ),
+            child: Stack(
+              children: [
+                FlutterMap(
+                  mapController: _mapController,
+                  options: MapOptions(
+                    initialCenter: center,
+                    initialZoom: 14,
+                    interactionOptions: const InteractionOptions(
+                      flags: InteractiveFlag.pinchZoom | InteractiveFlag.drag,
+                    ),
+                    onTap: _onMapTap,
+                  ),
+                  children: [
+                    TileLayer(
+                      urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                      userAgentPackageName: 'com.example.mobile',
+                    ),
+                    MarkerLayer(
+                      markers: [
+                        Marker(
+                          point: center,
+                          width: 40,
+                          height: 40,
+                          child: const Icon(Icons.location_on, color: Colors.red, size: 36),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+                // Hint overlay at bottom of map
+                Positioned(
+                  bottom: 12,
+                  left: 0,
+                  right: 0,
+                  child: Center(
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                      decoration: BoxDecoration(
+                        color: Colors.black54,
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      child: const Text(
+                        '지도를 터치하여 위치를 변경할 수 있습니다',
+                        style: TextStyle(color: Colors.white, fontSize: 11),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _GeoSearchResult {
+  final String name;
+  final String country;
+  final String admin1;
+  final double latitude;
+  final double longitude;
+
+  const _GeoSearchResult({
+    required this.name,
+    required this.country,
+    required this.admin1,
+    required this.latitude,
+    required this.longitude,
+  });
 }

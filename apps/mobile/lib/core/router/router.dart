@@ -11,6 +11,9 @@ import 'package:mobile/features/lock/presentation/pin_setup_screen.dart';
 import 'package:mobile/features/lock/presentation/lock_screen.dart';
 import 'package:mobile/features/onboarding/presentation/permission_screen.dart';
 
+import 'package:mobile/features/onboarding/presentation/permission_screen.dart';
+import 'package:mobile/features/settings/presentation/notification_settings_screen.dart';
+
 part 'router.g.dart';
 
 @riverpod
@@ -47,6 +50,12 @@ GoRouter router(Ref ref) {
       GoRoute(
         path: '/settings',
         builder: (context, state) => const SettingsScreen(),
+        routes: [
+          GoRoute(
+            path: 'notification',
+            builder: (context, state) => const NotificationSettingsScreen(),
+          ),
+        ],
       ),
       // App Lock Setup
       GoRoute(

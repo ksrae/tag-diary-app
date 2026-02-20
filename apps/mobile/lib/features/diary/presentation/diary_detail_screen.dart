@@ -297,7 +297,9 @@ class _DiaryDetailScreenState extends ConsumerState<DiaryDetailScreen> {
                       const SizedBox(height: 12),
                       
                       // Weather row (separate from date)
-                      if (diary.weather != null)
+                      if (diary.weather != null && 
+                          diary.weather!.condition != 'unknown' && 
+                          diary.weather!.condition != 'error')
                         Row(
                           mainAxisAlignment: MainAxisAlignment.end,
                           children: [

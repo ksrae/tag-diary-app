@@ -157,7 +157,9 @@ class DiaryCard extends StatelessWidget {
                     ),
                     const SizedBox(height: 8),
                     // Weather icon
-                    if (diary.weather != null)
+                    if (diary.weather != null && 
+                        diary.weather!.condition != 'unknown' && 
+                        diary.weather!.condition != 'error')
                       Icon(
                         _getWeatherIcon(diary.weather!.condition),
                         size: 18,

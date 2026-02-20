@@ -7,8 +7,8 @@ import 'package:mobile/core/router/router.dart';
 import 'package:mobile/core/theme/app_theme.dart';
 import 'package:mobile/features/lock/application/lock_service.dart';
 import 'package:mobile/features/lock/presentation/lock_screen.dart';
-import 'package:mobile/core/services/location_service.dart';
 import 'package:mobile/features/shared/data/health_repository.dart';
+import 'package:mobile/core/services/notification_service.dart';
 
 import 'package:mobile/features/onboarding/presentation/permission_screen.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
@@ -118,31 +118,24 @@ class _MyAppState extends ConsumerState<MyApp> {
       if (mounted) setState(() => _isLocked = true);
     }
 
-    // 2. Initialize Location and Health in parallel (only requests permission once)
+    // 2. Initialize Health (only requests permission once)
     // Only do this if NOT first run, because PermissionScreen will handle requests
-    await Future.wait([
-      _initLocation(),
-      _initHealth(),
-    ]);
+    // Location is loaded from SharedPreferences on-demand, no init needed.
+    await _initHealth();
     
     if (mounted) setState(() => _isLoading = false);
-  }
-
-  Future<void> _initLocation() async {
-    try {
-      final locationService = ref.read(locationServiceProvider);
-      await locationService.init();
-    } catch (e) {
-      // Ignore location errors
-    }
   }
 
   Future<void> _initHealth() async {
     try {
       final healthRepo = ref.read(healthRepositoryProvider);
       await healthRepo.initWithPermission();
+      
+      // Init Notification Service
+      final notificationService = ref.read(notificationServiceProvider);
+      await notificationService.init();
     } catch (e) {
-      // Ignore health errors
+      debugPrint('Init error: $e');
     }
   }
 
@@ -185,6 +178,7 @@ class _MyAppState extends ConsumerState<MyApp> {
           GlobalCupertinoLocalizations.delegate,
         ],
         supportedLocales: const [Locale('ko'), Locale('en')],
+        localeResolutionCallback: _localeResolutionCallback,
       );
     }
 
@@ -204,6 +198,7 @@ class _MyAppState extends ConsumerState<MyApp> {
           GlobalCupertinoLocalizations.delegate,
         ],
         supportedLocales: const [Locale('ko'), Locale('en')],
+        localeResolutionCallback: _localeResolutionCallback,
       );
     }
 
@@ -220,6 +215,22 @@ class _MyAppState extends ConsumerState<MyApp> {
         GlobalCupertinoLocalizations.delegate,
       ],
       supportedLocales: const [Locale('ko'), Locale('en')],
+      localeResolutionCallback: _localeResolutionCallback,
     );
+  }
+
+  Locale? _localeResolutionCallback(
+      Locale? locale, Iterable<Locale> supportedLocales) {
+    if (locale == null) {
+      return const Locale('en');
+    }
+
+    for (final supportedLocale in supportedLocales) {
+      if (supportedLocale.languageCode == locale.languageCode) {
+        return supportedLocale;
+      }
+    }
+
+    return const Locale('en');
   }
 }

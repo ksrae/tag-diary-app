@@ -6,7 +6,6 @@ import 'package:mobile/features/diary/data/models/diary.dart';
 import 'package:mobile/features/diary/data/models/mood.dart';
 import 'package:mobile/features/diary/data/models/source_item.dart';
 import 'package:mobile/features/ai/application/ai_service.dart';
-import 'package:mobile/core/services/location_service.dart';
 import 'package:mobile/features/shared/data/health_repository.dart';
 import 'package:mobile/features/shared/data/models/health_info.dart';
 import 'package:mobile/features/shared/application/weather_service.dart';
