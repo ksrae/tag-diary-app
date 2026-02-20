@@ -12,6 +12,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 class AiGenerationOptions {
   final List<SourceItem> selectedPhotos;
   final bool includeHealth;
+  final bool includeWeather;
   final String customPrompt;
   final String selectedStyle;
   final List<bool> photoSelections; // To restore specific checkmarks
@@ -19,6 +20,7 @@ class AiGenerationOptions {
   AiGenerationOptions({
     required this.selectedPhotos,
     required this.includeHealth,
+    required this.includeWeather,
     required this.customPrompt,
     required this.selectedStyle,
     required this.photoSelections,
@@ -59,6 +61,7 @@ class AiGenerationInputSheet extends ConsumerStatefulWidget {
 class _AiGenerationInputSheetState extends ConsumerState<AiGenerationInputSheet> {
   late List<bool> _photoSelections;
   late bool _includeHealth;
+  late bool _includeWeather;
   late String _selectedStyle;
   late TextEditingController _promptController;
 
@@ -81,6 +84,7 @@ class _AiGenerationInputSheetState extends ConsumerState<AiGenerationInputSheet>
       final op = widget.initialOptions!;
       _selectedStyle = op.selectedStyle;
       _includeHealth = op.includeHealth;
+      _includeWeather = op.includeWeather;
       _promptController = TextEditingController(text: op.customPrompt);
       // We need to restore photo selections carefully. 
       // If the photo list length changed (unlikely in this flow), this might be risky, 
@@ -94,6 +98,7 @@ class _AiGenerationInputSheetState extends ConsumerState<AiGenerationInputSheet>
       // Default init
       _selectedStyle = 'basic_style';
       _includeHealth = true;
+      _includeWeather = true;
       _promptController = TextEditingController();
       _photoSelections = List.generate(widget.photos.length, (i) => i < 3);
       _loadSavedStyle();
@@ -149,6 +154,7 @@ class _AiGenerationInputSheetState extends ConsumerState<AiGenerationInputSheet>
     final options = AiGenerationOptions(
       selectedPhotos: selectedPhotos,
       includeHealth: _includeHealth,
+      includeWeather: _includeWeather,
       customPrompt: _promptController.text.trim(),
       selectedStyle: _selectedStyle,
       photoSelections: List.from(_photoSelections),
@@ -179,6 +185,17 @@ class _AiGenerationInputSheetState extends ConsumerState<AiGenerationInputSheet>
       chips.add(Chip(
         avatar: const Icon(Icons.photo, size: 16),
         label: Text('사진 $_selectedPhotoCount장'),
+        visualDensity: VisualDensity.compact,
+      ));
+    }
+    
+    if (_includeWeather && widget.weather != null && widget.weather!.condition != 'unknown') {
+      chips.add(Chip(
+        avatar: Icon(
+          widget.weather!.condition == 'sunny' ? Icons.wb_sunny : Icons.cloud,
+          size: 16,
+        ),
+        label: const Text('날씨'),
         visualDensity: VisualDensity.compact,
       ));
     }
@@ -362,6 +379,16 @@ class _AiGenerationInputSheetState extends ConsumerState<AiGenerationInputSheet>
               ),
               const SizedBox(height: 16),
             ],
+
+            // Weather Toggle
+            if (widget.weather != null && widget.weather!.condition != 'unknown')
+              SwitchListTile(
+                title: const Text('날씨 정보 포함'),
+                subtitle: Text('${widget.weather!.temp.round()}°C 등', style: const TextStyle(fontSize: 12)),
+                value: _includeWeather,
+                onChanged: (v) => setState(() => _includeWeather = v),
+                contentPadding: EdgeInsets.zero,
+              ),
 
             // Health Toggle
             if (widget.healthInfo != null && !widget.healthInfo!.isEmpty)
