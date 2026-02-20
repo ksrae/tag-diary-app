@@ -1,6 +1,6 @@
 # 🏃 다이어리 프로젝트 실행 & 배포 가이드
 
-이 프로젝트는 **AI 일기 생성 서버(Node.js)**와 **모바일 앱(Flutter)**으로 구성된 풀스택 애플리케이션입니다. 현재 서버는 Vercel에 배포되어 있으며, 앱은 로컬 데이터베이스(Hive)를 사용하여 보안과 속도를 동시에 확보했습니다.
+이 프로젝트는 **AI 일기 생성 서버(Node.js)**와 **모바일 앱(Flutter)**으로 구성된 풀스택 애플리케이션입니다. 현재 서버는 Firebase Functions에 배포되어 있으며, 앱은 로컬 데이터베이스(Hive)를 사용하여 보안과 속도를 동시에 확보했습니다.
 
 ---
 
@@ -28,7 +28,7 @@ flutter run --dart-define=IS_PRO=false
 
 AI 분석 및 본문 생성을 담당하는 서버입니다. 현재 실서버에 배포되어 있어 로컬 실행 없이도 앱 사용이 가능합니다.
 
-*   **실서버 주소**: `https://tag-diary-app.vercel.app`
+*   **실서버 주소**: `https://asia-northeast3-tag-diary-c50e2.cloudfunctions.net/api` (Firebase 배포 후 반환된 실 URL로 변경 필요)
 *   **로컬 개발 환경 (필요시)**:
     ```bash
     cd apps/diary-server
@@ -71,8 +71,8 @@ flutter build apk --release --split-per-abi --dart-define=IS_PRO=true
 ```
 *   **결과물 위치**: `build/app/outputs/flutter-apk/app-arm64-v8a-release.apk` (최신폰용)
 
-### **서버 배포 (Vercel)**
-GitHub `main` 브랜치에 푸시하면 Vercel이 자동으로 배포를 수행합니다.
+### **서버 배포 (Firebase Functions)**
+GitHub `main` 브랜치에 코드를 푸시하면 GitHub Actions가 자동으로 Firebase Functions로 배포를 수행합니다.
 ```bash
 git add .
 git commit -m "feat: 새로운 기능 추가"
@@ -82,11 +82,11 @@ git push origin main
 ---
 
 ## 💡 네트워크 설정 (중요)
-현재 앱은 모든 네트워크 요청을 Vercel 실서버(`https://tag-diary-app.vercel.app`)로 보내도록 설정되어 있습니다. 로컬 서버로 테스트하려면 `apps/mobile/lib/features/ai/application/ai_service.dart`의 `baseUrl`을 수정하세요.
+현재 앱은 모든 네트워크 요청을 Firebase 실서버(예: `https://asia-northeast3-tag-diary-c50e2.cloudfunctions.net/api`)로 보내도록 설정되어 있습니다. 로컬 서버로 테스트하려면 `apps/mobile/lib/features/ai/application/ai_service.dart`의 `baseUrl`을 수정하세요.
 
 ---
 
 ## ❓ 문제 해결 (Troubleshooting)
-1.  **AI 생성 실패**: `diary-server`의 `GEMINI_API_KEY` 환경 변수가 Vercel 설정에 올바르게 입력되었는지 확인하세요.
+1.  **AI 생성 실패**: `diary-server`에 필요한 환경 변수(`GEMINI_API_KEY`, `JWE_SECRET_KEY` 등)가 Firebase(Google Cloud Console의 Secret Manager)에 올바르게 입력 및 배포되었는지 확인하세요.
 2.  **데이터 초기화**: 설정 화면의 '데이터 전체 삭제' 기능을 통해 로컬 데이터베이스(Hive)를 초기화할 수 있습니다.
 3.  **사진 권한**: 설정 -> 권한 설정에서 저장 공간 접근 권한을 허용해야 사진 추가가 가능합니다.
