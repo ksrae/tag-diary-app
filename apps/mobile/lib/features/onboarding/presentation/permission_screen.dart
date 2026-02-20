@@ -15,14 +15,12 @@ class PermissionScreen extends StatefulWidget {
 
 class _PermissionScreenState extends State<PermissionScreen> {
   // Permission Statuses (Actual System Status)
-  bool _isLocationGranted = false;
   bool _isPhotosGranted = false;
   bool _isNotificationGranted = false;
   bool _isHealthGranted = false;
 
   // Checkbox States (User Choice)
   bool _isPhotosChecked = false; // Initially false, interactive
-  bool _isLocationChecked = false;
   bool _isNotificationChecked = false; // Initially false
   bool _isHealthChecked = false;
 
@@ -33,7 +31,6 @@ class _PermissionScreenState extends State<PermissionScreen> {
   }
 
   Future<void> _initPermissions() async {
-    final location = await Permission.location.status;
     final photos = await Permission.photos.status;
     final storage = await Permission.storage.status;
     final notification = await Permission.notification.status;
@@ -43,14 +40,10 @@ class _PermissionScreenState extends State<PermissionScreen> {
 
     if (mounted) {
       setState(() {
-        _isLocationGranted = location.isGranted;
         _isPhotosGranted = photos.isGranted || storage.isGranted;
         _isNotificationGranted = notification.isGranted;
         _isHealthGranted = activity.isGranted || sensors.isGranted;
         
-        // Initial Checkbox State: ALWAYS START UNCHECKED as per user request
-        // User must explicitly check what they want to enable.
-        _isLocationChecked = false;
         _isPhotosChecked = false;
         _isNotificationChecked = false;
         _isHealthChecked = false;
@@ -60,7 +53,6 @@ class _PermissionScreenState extends State<PermissionScreen> {
 
   Future<void> _checkPermissionsOnly() async {
      // Only update system status, DO NOT touch checkboxes (user intent)
-    final location = await Permission.location.status;
     final photos = await Permission.photos.status;
     final storage = await Permission.storage.status;
     final notification = await Permission.notification.status;
@@ -69,7 +61,6 @@ class _PermissionScreenState extends State<PermissionScreen> {
 
     if (mounted) {
       setState(() {
-        _isLocationGranted = location.isGranted;
         _isPhotosGranted = photos.isGranted || storage.isGranted;
         _isNotificationGranted = notification.isGranted;
         _isHealthGranted = activity.isGranted || sensors.isGranted;
@@ -90,9 +81,6 @@ class _PermissionScreenState extends State<PermissionScreen> {
     }
 
     // Optional permissions - only if checked
-    if (_isLocationChecked && !_isLocationGranted) {
-      permissionsToRequest.add(Permission.location);
-    }
     if (_isNotificationChecked && !_isNotificationGranted) {
       permissionsToRequest.add(Permission.notification);
     }
@@ -144,7 +132,6 @@ class _PermissionScreenState extends State<PermissionScreen> {
     await prefs.setBool('is_first_run', false);
     
     // Save User Choices for features
-    await prefs.setBool('feature_location_enabled', _isLocationChecked);
     await prefs.setBool('feature_health_enabled', _isHealthChecked);
     await prefs.setBool('feature_notification_enabled', _isNotificationChecked);
     
@@ -202,17 +189,6 @@ class _PermissionScreenState extends State<PermissionScreen> {
                       isLocked: false, // User can uncheck, but button disables
                     ),
                     
-                    const SizedBox(height: 24),
-                    
-                    // OPTIONAL: Location
-                    _PermissionCheckboxItem(
-                      icon: Icons.location_on_outlined,
-                      title: '위치 정보 (선택)',
-                      description: '일기에 현재 위치와 날씨를 자동으로 기록합니다.',
-                      value: _isLocationChecked,
-                      onChanged: (v) => setState(() => _isLocationChecked = v ?? false),
-                    ),
-
                     const SizedBox(height: 24),
                     
                     // OPTIONAL: Notification

@@ -7,45 +7,60 @@ import 'package:mobile/features/diary/data/models/mood.dart';
 import 'package:mobile/features/shared/data/models/health_info.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-/// Modal for AI diary generation
+// --- Data Class ---
+
+class AiGenerationOptions {
+  final List<SourceItem> selectedPhotos;
+  final bool includeHealth;
+  final String customPrompt;
+  final String selectedStyle;
+  final List<bool> photoSelections; // To restore specific checkmarks
+
+  AiGenerationOptions({
+    required this.selectedPhotos,
+    required this.includeHealth,
+    required this.customPrompt,
+    required this.selectedStyle,
+    required this.photoSelections,
+  });
+}
+
+// --- Input Sheet (Bottom Sheet) ---
+
+/// Modal for AI diary generation input
 /// - Style selection (persisted)
 /// - Photo selection (max 3 from selected photos)
 /// - Health info toggle
 /// - Custom prompt
-/// - Shows loading state and result in modal
-class AiGenerationModal extends ConsumerStatefulWidget {
-  final List<SourceItem> photos; // Already filtered to selected photos
+class AiGenerationInputSheet extends ConsumerStatefulWidget {
+  final List<SourceItem> photos; // All available photos
   final HealthInfo? healthInfo;
   final Weather? weather;
   final List<String> tags;
   final Mood? mood;
-  /// Returns the generated diary content or throws on error
-  final Future<String> Function(List<SourceItem> selectedPhotos, bool includeHealth, String customPrompt, String selectedStyle) onGenerate;
+  
+  // Optional: Restore previous state if user clicked "Retry"
+  final AiGenerationOptions? initialOptions;
 
-  const AiGenerationModal({
+  const AiGenerationInputSheet({
     super.key,
     required this.photos,
     this.healthInfo,
     this.weather,
     required this.tags,
     this.mood,
-    required this.onGenerate,
+    this.initialOptions,
   });
 
   @override
-  ConsumerState<AiGenerationModal> createState() => _AiGenerationModalState();
+  ConsumerState<AiGenerationInputSheet> createState() => _AiGenerationInputSheetState();
 }
 
-class _AiGenerationModalState extends ConsumerState<AiGenerationModal> {
+class _AiGenerationInputSheetState extends ConsumerState<AiGenerationInputSheet> {
   late List<bool> _photoSelections;
-  bool _includeHealth = true;
-  String _selectedStyle = 'basic_style';
-  final TextEditingController _promptController = TextEditingController();
-
-  // Loading and result state
-  bool _isLoading = false;
-  String? _generatedResult;
-  String? _errorMessage;
+  late bool _includeHealth;
+  late String _selectedStyle;
+  late TextEditingController _promptController;
 
   final Map<String, String> _styles = {
     'basic_style': '기본 일기',
@@ -57,15 +72,36 @@ class _AiGenerationModalState extends ConsumerState<AiGenerationModal> {
   @override
   void initState() {
     super.initState();
-    _loadSavedStyle();
-    // Select up to first 3 photos by default
-    _photoSelections = List.generate(
-      widget.photos.length,
-      (i) => i < 3,
-    );
+    _initState();
+  }
+
+  void _initState() {
+    if (widget.initialOptions != null) {
+      // Restore from previous options
+      final op = widget.initialOptions!;
+      _selectedStyle = op.selectedStyle;
+      _includeHealth = op.includeHealth;
+      _promptController = TextEditingController(text: op.customPrompt);
+      // We need to restore photo selections carefully. 
+      // If the photo list length changed (unlikely in this flow), this might be risky, 
+      // but within the same screen session it should be fine.
+      if (op.photoSelections.length == widget.photos.length) {
+        _photoSelections = List.from(op.photoSelections);
+      } else {
+        _photoSelections = List.generate(widget.photos.length, (i) => i < 3);
+      }
+    } else {
+      // Default init
+      _selectedStyle = 'basic_style';
+      _includeHealth = true;
+      _promptController = TextEditingController();
+      _photoSelections = List.generate(widget.photos.length, (i) => i < 3);
+      _loadSavedStyle();
+    }
   }
 
   Future<void> _loadSavedStyle() async {
+    if (widget.initialOptions != null) return; // Don't overwrite restored style
     final prefs = await SharedPreferences.getInstance();
     final saved = prefs.getString('last_diary_style');
     if (saved != null && _styles.containsKey(saved)) {
@@ -87,7 +123,6 @@ class _AiGenerationModalState extends ConsumerState<AiGenerationModal> {
   int get _selectedPhotoCount => _photoSelections.where((s) => s).length;
 
   void _togglePhoto(int index) {
-    if (_isLoading || _generatedResult != null) return;
     setState(() {
       if (_photoSelections[index]) {
         _photoSelections[index] = false;
@@ -101,7 +136,7 @@ class _AiGenerationModalState extends ConsumerState<AiGenerationModal> {
     });
   }
 
-  Future<void> _submit() async {
+  void _submit() async {
     await _saveSelectedStyle();
     
     final selectedPhotos = <SourceItem>[];
@@ -111,52 +146,21 @@ class _AiGenerationModalState extends ConsumerState<AiGenerationModal> {
       }
     }
 
-    setState(() {
-      _isLoading = true;
-      _errorMessage = null;
-    });
+    final options = AiGenerationOptions(
+      selectedPhotos: selectedPhotos,
+      includeHealth: _includeHealth,
+      customPrompt: _promptController.text.trim(),
+      selectedStyle: _selectedStyle,
+      photoSelections: List.from(_photoSelections),
+    );
 
-    try {
-      final result = await widget.onGenerate(
-        selectedPhotos,
-        _includeHealth,
-        _promptController.text.trim(),
-        _selectedStyle,
-      );
-      if (mounted) {
-        setState(() {
-          _isLoading = false;
-          _generatedResult = result;
-        });
-      }
-    } catch (e) {
-      if (mounted) {
-        setState(() {
-          _isLoading = false;
-          _errorMessage = e.toString();
-        });
-      }
-    }
-  }
-
-  void _confirmAndClose() {
-    if (_generatedResult != null) {
-      Navigator.pop(context, _generatedResult);
-    }
-  }
-
-  void _retryGeneration() {
-    setState(() {
-      _errorMessage = null;
-      _generatedResult = null;
-    });
+    Navigator.pop(context, options);
   }
 
   // Build dynamic info summary based on current selections
   Widget _buildInfoSummary() {
     final List<Widget> chips = [];
     
-    // Mood
     if (widget.mood != null) {
       chips.add(Chip(
         label: Text('${widget.mood!.emoji} ${widget.mood!.label}'),
@@ -164,7 +168,6 @@ class _AiGenerationModalState extends ConsumerState<AiGenerationModal> {
       ));
     }
     
-    // Tags
     for (final tag in widget.tags) {
       chips.add(Chip(
         label: Text('#$tag'),
@@ -172,7 +175,6 @@ class _AiGenerationModalState extends ConsumerState<AiGenerationModal> {
       ));
     }
     
-    // Photos (dynamic count based on selection)
     if (_selectedPhotoCount > 0) {
       chips.add(Chip(
         avatar: const Icon(Icons.photo, size: 16),
@@ -181,7 +183,6 @@ class _AiGenerationModalState extends ConsumerState<AiGenerationModal> {
       ));
     }
     
-    // Health (if included and available)
     if (_includeHealth && widget.healthInfo != null && !widget.healthInfo!.isEmpty) {
       chips.add(Chip(
         avatar: const Icon(Icons.favorite, size: 16),
@@ -204,360 +205,379 @@ class _AiGenerationModalState extends ConsumerState<AiGenerationModal> {
     );
   }
 
-  Widget _buildLoadingView() {
+  @override
+  Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(40),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          const CircularProgressIndicator(),
-          const SizedBox(height: 24),
-          Text(
-            'AI가 일기를 작성하고 있어요...',
-            style: Theme.of(context).textTheme.titleMedium,
-          ),
-          const SizedBox(height: 8),
-          Text(
-            '잠시만 기다려주세요',
-            style: TextStyle(color: Colors.grey.shade600),
-          ),
-        ],
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.surface,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
       ),
-    );
-  }
-
-  Widget _buildResultView() {
-    return Padding(
-      padding: EdgeInsets.only(
-        left: 20,
-        right: 20,
-        top: 20,
-        bottom: MediaQuery.of(context).viewInsets.bottom + 20,
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Row(
-                children: [
-                  const Icon(Icons.auto_awesome, color: Colors.amber),
-                  const SizedBox(width: 8),
-                  Text('AI 일기 생성 완료', style: Theme.of(context).textTheme.titleLarge),
-                ],
-              ),
-              IconButton(
-                icon: const Icon(Icons.close),
-                onPressed: () => Navigator.pop(context),
-              ),
-            ],
-          ),
-          const SizedBox(height: 16),
-          Flexible(
-            child: Container(
-              constraints: BoxConstraints(
-                maxHeight: MediaQuery.of(context).size.height * 0.5,
-              ),
-              decoration: BoxDecoration(
-                color: Theme.of(context).colorScheme.surfaceContainerHighest,
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.all(16),
-                child: SelectableText(
-                  _generatedResult ?? '',
-                  style: Theme.of(context).textTheme.bodyLarge,
-                ),
-              ),
-            ),
-          ),
-          const SizedBox(height: 20),
-          Row(
-            children: [
-              Expanded(
-                child: OutlinedButton(
-                  onPressed: _retryGeneration,
-                  child: const Text('다시 생성'),
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                flex: 2,
-                child: FilledButton(
-                  onPressed: _confirmAndClose,
-                  child: const Text('이 내용으로 사용'),
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildErrorView() {
-    return Container(
-      padding: const EdgeInsets.all(40),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(Icons.error_outline, size: 48, color: Colors.red.shade400),
-          const SizedBox(height: 16),
-          Text(
-            '생성 중 오류가 발생했습니다',
-            style: Theme.of(context).textTheme.titleMedium,
-          ),
-          const SizedBox(height: 8),
-          Text(
-            _errorMessage ?? '알 수 없는 오류',
-            style: TextStyle(color: Colors.grey.shade600, fontSize: 12),
-            textAlign: TextAlign.center,
-          ),
-          const SizedBox(height: 24),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              OutlinedButton(
-                onPressed: () => Navigator.pop(context),
-                child: const Text('닫기'),
-              ),
-              const SizedBox(width: 12),
-              FilledButton(
-                onPressed: _retryGeneration,
-                child: const Text('다시 시도'),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildInputView() {
-    return SingleChildScrollView(
-      padding: EdgeInsets.only(
-        left: 20,
-        right: 20,
-        top: 20,
-        bottom: MediaQuery.of(context).viewInsets.bottom + 20,
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Header
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text('AI 일기 생성', style: Theme.of(context).textTheme.titleLarge),
-              IconButton(
-                icon: const Icon(Icons.close),
-                onPressed: () => Navigator.pop(context),
-              ),
-            ],
-          ),
-          
-          const SizedBox(height: 12),
-
-          // Dynamic summary of AI reference info
-          Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: Theme.of(context).colorScheme.primaryContainer.withOpacity(0.3),
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Icon(Icons.info_outline, size: 16, color: Colors.grey.shade600),
-                    const SizedBox(width: 4),
-                    Text('AI가 참고할 정보에요', style: TextStyle(fontSize: 13, color: Colors.grey.shade700)),
-                  ],
-                ),
-                const SizedBox(height: 8),
-                _buildInfoSummary(),
-              ],
-            ),
-          ),
-
-          const SizedBox(height: 16),
-
-          // Style Selector
-          const Text('스타일', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
-          const SizedBox(height: 8),
-          DropdownButtonFormField<String>(
-            value: _selectedStyle,
-            decoration: const InputDecoration(
-              border: OutlineInputBorder(),
-              contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-            ),
-            items: _styles.entries.map((e) => DropdownMenuItem(
-              value: e.key,
-              child: Text(e.value),
-            )).toList(),
-            onChanged: (v) {
-              if (v != null) setState(() => _selectedStyle = v);
-            },
-          ),
-
-          const SizedBox(height: 16),
-
-          // Photo Selection (if photos exist, max 3)
-          if (widget.photos.isNotEmpty) ...[
+      child: SingleChildScrollView(
+        padding: EdgeInsets.only(
+          left: 20,
+          right: 20,
+          top: 20,
+          bottom: MediaQuery.of(context).viewInsets.bottom + 20,
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Header
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                const Text('사진 선택 (최대 3장)', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
-                Text('$_selectedPhotoCount/3', style: TextStyle(fontSize: 12, color: Colors.grey.shade600)),
+                Text('AI 일기 생성', style: Theme.of(context).textTheme.titleLarge),
+                IconButton(
+                  icon: const Icon(Icons.close),
+                  onPressed: () => Navigator.pop(context),
+                ),
               ],
             ),
-            const SizedBox(height: 8),
-            LayoutBuilder(
-              builder: (context, constraints) {
-                // Max item size 80px - will fit 4+ items on normal phones, more on wider screens
-                const maxItemSize = 80.0;
-                const spacing = 6.0;
-                
-                // Calculate how many items fit per row
-                final itemsPerRow = (constraints.maxWidth / (maxItemSize + spacing)).floor().clamp(4, 10);
-                final itemWidth = (constraints.maxWidth - (spacing * (itemsPerRow - 1))) / itemsPerRow;
-                
-                // Calculate rows needed (max 2 rows visible)
-                final rowsNeeded = (widget.photos.length / itemsPerRow).ceil();
-                final visibleRows = rowsNeeded.clamp(1, 2);
-                final height = (itemWidth * visibleRows) + (spacing * (visibleRows - 1));
+            
+            const SizedBox(height: 12),
 
-                return SizedBox(
-                  height: height,
-                  child: GridView.builder(
-                    padding: EdgeInsets.zero,
-                    physics: rowsNeeded <= 2 
-                        ? const NeverScrollableScrollPhysics() 
-                        : const ClampingScrollPhysics(),
-                    gridDelegate: SliverGridDelegateWithMaxCrossAxisExtent(
-                      maxCrossAxisExtent: itemWidth,
-                      mainAxisSpacing: spacing,
-                      crossAxisSpacing: spacing,
-                    ),
-                    itemCount: widget.photos.length,
-                    itemBuilder: (context, index) {
-                      final photo = widget.photos[index];
-                      final isSelected = _photoSelections[index];
-                      return GestureDetector(
-                        onTap: () => _togglePhoto(index),
-                        child: Container(
-                          decoration: BoxDecoration(
-                            border: Border.all(
-                              color: isSelected ? Theme.of(context).colorScheme.primary : Colors.grey.shade300,
-                              width: isSelected ? 2 : 1,
-                            ),
-                            borderRadius: BorderRadius.circular(6),
-                          ),
-                          child: Stack(
-                            children: [
-                              ClipRRect(
-                                borderRadius: BorderRadius.circular(4),
-                                child: photo.imageFile != null
-                                    ? Image.file(photo.imageFile!, fit: BoxFit.cover, width: double.infinity, height: double.infinity)
-                                    : photo.imagePath != null
-                                        ? Image.file(File(photo.imagePath!), fit: BoxFit.cover, width: double.infinity, height: double.infinity)
-                                        : const Center(child: Icon(Icons.image, size: 20)),
-                              ),
-                              if (isSelected)
-                                Positioned(
-                                  top: 2,
-                                  right: 2,
-                                  child: Container(
-                                    padding: const EdgeInsets.all(2),
-                                    decoration: BoxDecoration(
-                                      color: Theme.of(context).colorScheme.primary,
-                                      shape: BoxShape.circle,
-                                    ),
-                                    child: const Icon(Icons.check, size: 10, color: Colors.white),
-                                  ),
-                                ),
-                            ],
-                          ),
-                        ),
-                      );
-                    },
+            // Dynamic summary
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Theme.of(context).colorScheme.primaryContainer.withOpacity(0.3),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Icon(Icons.info_outline, size: 16, color: Colors.grey.shade600),
+                      const SizedBox(width: 4),
+                      Text('AI가 참고할 정보에요', style: TextStyle(fontSize: 13, color: Colors.grey.shade700)),
+                    ],
                   ),
-                );
+                  const SizedBox(height: 8),
+                  _buildInfoSummary(),
+                ],
+              ),
+            ),
+
+            const SizedBox(height: 16),
+
+            // Style Selector
+            const Text('스타일', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
+            const SizedBox(height: 8),
+            DropdownButtonFormField<String>(
+              value: _selectedStyle,
+              decoration: const InputDecoration(
+                border: OutlineInputBorder(),
+                contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              ),
+              items: _styles.entries.map((e) => DropdownMenuItem(
+                value: e.key,
+                child: Text(e.value),
+              )).toList(),
+              onChanged: (v) {
+                if (v != null) setState(() => _selectedStyle = v);
               },
             ),
+
             const SizedBox(height: 16),
+
+            // Photo Selection
+            if (widget.photos.isNotEmpty) ...[
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Text('사진 선택 (최대 3장)', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
+                  Text('$_selectedPhotoCount/3', style: TextStyle(fontSize: 12, color: Colors.grey.shade600)),
+                ],
+              ),
+              const SizedBox(height: 8),
+              LayoutBuilder(
+                builder: (context, constraints) {
+                  const maxItemSize = 80.0;
+                  const spacing = 6.0;
+                  final itemsPerRow = (constraints.maxWidth / (maxItemSize + spacing)).floor().clamp(4, 10);
+                  final itemWidth = (constraints.maxWidth - (spacing * (itemsPerRow - 1))) / itemsPerRow;
+                  final rowsNeeded = (widget.photos.length / itemsPerRow).ceil();
+                  final visibleRows = rowsNeeded.clamp(1, 2);
+                  final height = (itemWidth * visibleRows) + (spacing * (visibleRows - 1));
+
+                  return SizedBox(
+                    height: height,
+                    child: GridView.builder(
+                      padding: EdgeInsets.zero,
+                      physics: rowsNeeded <= 2 
+                          ? const NeverScrollableScrollPhysics() 
+                          : const ClampingScrollPhysics(),
+                      gridDelegate: SliverGridDelegateWithMaxCrossAxisExtent(
+                        maxCrossAxisExtent: itemWidth,
+                        mainAxisSpacing: spacing,
+                        crossAxisSpacing: spacing,
+                      ),
+                      itemCount: widget.photos.length,
+                      itemBuilder: (context, index) {
+                        final photo = widget.photos[index];
+                        final isSelected = _photoSelections[index];
+                        return GestureDetector(
+                          onTap: () => _togglePhoto(index),
+                          child: Container(
+                            decoration: BoxDecoration(
+                              border: Border.all(
+                                color: isSelected ? Theme.of(context).colorScheme.primary : Colors.grey.shade300,
+                                width: isSelected ? 2 : 1,
+                              ),
+                              borderRadius: BorderRadius.circular(6),
+                            ),
+                            child: Stack(
+                              children: [
+                                ClipRRect(
+                                  borderRadius: BorderRadius.circular(4),
+                                  child: photo.imageFile != null
+                                      ? Image.file(photo.imageFile!, fit: BoxFit.cover, width: double.infinity, height: double.infinity)
+                                      : photo.imagePath != null
+                                          ? Image.file(File(photo.imagePath!), fit: BoxFit.cover, width: double.infinity, height: double.infinity)
+                                          : const Center(child: Icon(Icons.image, size: 20)),
+                                ),
+                                if (isSelected)
+                                  Positioned(
+                                    top: 2,
+                                    right: 2,
+                                    child: Container(
+                                      padding: const EdgeInsets.all(2),
+                                      decoration: BoxDecoration(
+                                        color: Theme.of(context).colorScheme.primary,
+                                        shape: BoxShape.circle,
+                                      ),
+                                      child: const Icon(Icons.check, size: 10, color: Colors.white),
+                                    ),
+                                  ),
+                              ],
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                  );
+                },
+              ),
+              const SizedBox(height: 16),
+            ],
+
+            // Health Toggle
+            if (widget.healthInfo != null && !widget.healthInfo!.isEmpty)
+              SwitchListTile(
+                title: const Text('건강/활동 정보 포함'),
+                subtitle: Text(widget.healthInfo!.summary, style: const TextStyle(fontSize: 12)),
+                value: _includeHealth,
+                onChanged: (v) => setState(() => _includeHealth = v),
+                contentPadding: EdgeInsets.zero,
+              ),
+
+            const SizedBox(height: 16),
+
+            // Custom Prompt
+            const Text('추가 요청사항 (선택)', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
+            const SizedBox(height: 8),
+            TextField(
+              controller: _promptController,
+              decoration: const InputDecoration(
+                hintText: '예: 긍정적인 분위기로 작성해줘',
+                border: OutlineInputBorder(),
+              ),
+              maxLines: 2,
+            ),
+
+            const SizedBox(height: 24),
+
+            // Generate Button
+            SizedBox(
+              width: double.infinity,
+              child: FilledButton.icon(
+                onPressed: _submit,
+                icon: const Icon(Icons.auto_awesome),
+                label: const Text('일기 생성하기'),
+              ),
+            ),
           ],
-
-          // Include Health Toggle - only show if health data is available
-          if (widget.healthInfo != null && !widget.healthInfo!.isEmpty)
-            SwitchListTile(
-              title: const Text('건강/활동 정보 포함'),
-              subtitle: Text(widget.healthInfo!.summary, style: const TextStyle(fontSize: 12)),
-              value: _includeHealth,
-              onChanged: (v) => setState(() => _includeHealth = v),
-              contentPadding: EdgeInsets.zero,
-            ),
-
-          const SizedBox(height: 16),
-
-          // Custom Prompt
-          const Text('추가 요청사항 (선택)', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
-          const SizedBox(height: 8),
-          TextField(
-            controller: _promptController,
-            decoration: const InputDecoration(
-              hintText: '예: 긍정적인 분위기로 작성해줘',
-              border: OutlineInputBorder(),
-            ),
-            maxLines: 2,
-          ),
-
-          const SizedBox(height: 24),
-
-          // Generate Button
-          SizedBox(
-            width: double.infinity,
-            child: FilledButton.icon(
-              onPressed: _submit,
-              icon: const Icon(Icons.auto_awesome),
-              label: const Text('일기 생성하기'),
-            ),
-          ),
-        ],
+        ),
       ),
     );
+  }
+}
+
+// --- Result Loading/Display Dialog (Centered) ---
+
+class AiGenerationResultDialog extends ConsumerStatefulWidget {
+  final AiGenerationOptions options;
+  final Future<String> Function(AiGenerationOptions options) onGenerate;
+
+  const AiGenerationResultDialog({
+    super.key,
+    required this.options,
+    required this.onGenerate,
+  });
+
+  @override
+  ConsumerState<AiGenerationResultDialog> createState() => _AiGenerationResultDialogState();
+}
+
+class _AiGenerationResultDialogState extends ConsumerState<AiGenerationResultDialog> {
+  bool _isLoading = true;
+  String? _generatedResult;
+  String? _errorMessage;
+
+  @override
+  void initState() {
+    super.initState();
+    _startGeneration();
+  }
+
+  void _startGeneration() async {
+    try {
+      final result = await widget.onGenerate(widget.options);
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+          _generatedResult = result;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+          _errorMessage = e.toString();
+        });
+      }
+    }
   }
 
   @override
   Widget build(BuildContext context) {
-    Widget content;
-    
-    if (_isLoading) {
-      content = _buildLoadingView();
-    } else if (_errorMessage != null) {
-      content = _buildErrorView();
-    } else if (_generatedResult != null) {
-      content = _buildResultView();
-    } else {
-      content = _buildInputView();
-    }
-
+    // Prevent back button when loading
     return PopScope(
       canPop: !_isLoading,
-      child: Container(
-        decoration: BoxDecoration(
-          color: Theme.of(context).colorScheme.surface,
-          borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
-        ),
-        child: AbsorbPointer(
-          absorbing: _isLoading,
-          child: content,
+      child: Dialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (_isLoading) _buildLoadingView(),
+              if (_errorMessage != null) _buildErrorView(),
+              if (_generatedResult != null) _buildResultView(),
+            ],
+          ),
         ),
       ),
+    );
+  }
+
+  Widget _buildLoadingView() {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        const CircularProgressIndicator(),
+        const SizedBox(height: 24),
+        Text(
+          'AI가 일기를 작성하고 있어요...',
+          style: Theme.of(context).textTheme.titleMedium,
+          textAlign: TextAlign.center,
+        ),
+        const SizedBox(height: 8),
+        Text(
+          '잠시만 기다려주세요',
+          style: TextStyle(color: Colors.grey.shade600),
+          textAlign: TextAlign.center,
+        ),
+      ],
+    );
+  }
+
+  Widget _buildErrorView() {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(Icons.error_outline, size: 48, color: Colors.red.shade400),
+        const SizedBox(height: 16),
+        Text(
+          '생성 중 오류가 발생했습니다',
+          style: Theme.of(context).textTheme.titleMedium,
+        ),
+        const SizedBox(height: 8),
+        Text(
+          _errorMessage ?? '알 수 없는 오류',
+          style: TextStyle(color: Colors.grey.shade600, fontSize: 12),
+          textAlign: TextAlign.center,
+        ),
+        const SizedBox(height: 24),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            TextButton(
+              onPressed: () => Navigator.pop(context), // Close dialog, end flow
+              child: const Text('닫기'),
+            ),
+            const SizedBox(width: 8),
+            FilledButton(
+              onPressed: () => Navigator.pop(context, 'retry'), // Return 'retry' to screen
+              child: const Text('다시 설정 및 시도'),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  Widget _buildResultView() {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(Icons.auto_awesome, color: Colors.amber),
+            const SizedBox(width: 8),
+            Text('AI 일기 생성 완료', style: Theme.of(context).textTheme.titleLarge),
+          ],
+        ),
+        const SizedBox(height: 16),
+        Container(
+          constraints: BoxConstraints(
+            maxHeight: MediaQuery.of(context).size.height * 0.6,
+          ),
+          decoration: BoxDecoration(
+            color: Theme.of(context).colorScheme.surfaceContainerHighest,
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(16),
+            child: SelectableText(
+              _generatedResult ?? '',
+              style: Theme.of(context).textTheme.bodyLarge,
+            ),
+          ),
+        ),
+        const SizedBox(height: 20),
+        Row(
+          children: [
+            Expanded(
+              child: OutlinedButton(
+                onPressed: () => Navigator.pop(context, 'retry'), // Retry with same options
+                child: const Text('다시 생성'),
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: FilledButton(
+                onPressed: () => Navigator.pop(context, _generatedResult), // Return text
+                child: const Text('사용하기'),
+              ),
+            ),
+          ],
+        ),
+      ],
     );
   }
 }

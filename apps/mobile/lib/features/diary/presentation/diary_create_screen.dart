@@ -16,6 +16,7 @@ import 'package:mobile/features/premium/application/purchase_provider.dart';
 import 'package:mobile/features/ai/application/ai_service.dart';
 import 'package:mobile/features/shared/data/health_repository.dart';
 import 'package:mobile/features/shared/application/weather_service.dart';
+import 'package:mobile/core/services/location_service.dart';
 import 'package:photo_manager/photo_manager.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -233,7 +234,7 @@ class _DiaryCreateScreenState extends ConsumerState<DiaryCreateScreen> {
     return 3 - count; // Max 3 per day
   }
 
-  Future<void> _showAiGenerationModal() async {
+  Future<void> _startAiGenerationFlow() async {
     // Validate: must have some info for AI to use
     if (!_hasAnyInfo) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -248,30 +249,62 @@ class _DiaryCreateScreenState extends ConsumerState<DiaryCreateScreen> {
     final healthAsync = ref.read(todayHealthProvider);
     final health = healthAsync.valueOrNull;
 
-    final result = await showModalBottomSheet<String>(
-      context: context,
-      isScrollControlled: true,
-      isDismissible: false, // Prevent dismissing during generation
-      enableDrag: false,
-      builder: (context) => AiGenerationModal(
-        photos: _selectedPhotos, // Only pass selected photos
-        healthInfo: health,
-        weather: _weather,
-        tags: _tags,
-        mood: _selectedMood,
-        onGenerate: _generateWithAI,
-      ),
-    );
+    AiGenerationOptions? processingOptions;
 
-    // Handle result from modal
-    if (result != null && result.isNotEmpty && mounted) {
-      setState(() {
-        _contentController.text = result;
-        _isAiGenerated = true;
-      });
-      
-      // Auto-save the diary after AI generation
-      await _saveDiary();
+    // Loop to handle "Retry" flow
+    while (mounted) {
+      // Step 1: Input Sheet (Bottom Sheet)
+      // Pass existing options if retrying
+      final options = await showModalBottomSheet<AiGenerationOptions>(
+        context: context,
+        isScrollControlled: true,
+        useSafeArea: true,
+        builder: (context) => AiGenerationInputSheet(
+          photos: _selectedPhotos, 
+          healthInfo: health,
+          weather: _weather,
+          tags: _tags,
+          mood: _selectedMood,
+          initialOptions: processingOptions,
+        ),
+      );
+
+      if (options == null) return; // User cancelled
+      processingOptions = options;
+
+      // Step 2: Generation & Result (Centered Dialog)
+      final result = await showDialog<dynamic>(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) => AiGenerationResultDialog(
+          options: options,
+          onGenerate: (opts) => _generateWithAI(
+            opts.selectedPhotos,
+            opts.includeHealth,
+            opts.customPrompt,
+            opts.selectedStyle,
+          ),
+        ),
+      );
+
+      if (result is String) {
+        // Success: result is the generated text
+        if (mounted) {
+          setState(() {
+            _contentController.text = result;
+            _isAiGenerated = true;
+          });
+          // Auto-save the diary after AI generation
+          await _saveDiary();
+        }
+        return;
+      } else if (result == 'retry') {
+        // Loop continues, re-showing input sheet with preserved options
+        continue;
+      } else {
+        // Cancelled (result is null)
+        return;
+      }
     }
   }
 
@@ -309,7 +342,9 @@ class _DiaryCreateScreenState extends ConsumerState<DiaryCreateScreen> {
       contextParts.add('기분: ${_selectedMood!.label}');
     }
     
-    contextParts.add('날씨: ${weather.temp}°C ${weather.condition}');
+    if (weather.condition != 'unknown') {
+      contextParts.add('날씨: ${weather.temp}°C ${weather.condition}');
+    }
     
     if (includeHealth && !health.isEmpty) {
       contextParts.add('활동: ${health.summary}');
@@ -454,32 +489,84 @@ class _DiaryCreateScreenState extends ConsumerState<DiaryCreateScreen> {
                   _buildMoodSelector(),
                   const Divider(height: 24),
 
-                  // 2. Info Row - Weather with region, Health with larger text
+                  // 2. Info Row - Weather with region, Health
                   Row(
                     children: [
                       weatherAsync.when(
                         data: (w) {
-                          final regionAsync = ref.watch(weatherRegionProvider);
-                          final regionName = regionAsync.valueOrNull ?? '';
+                          if (w.condition == 'unknown') {
+                            return Expanded(
+                              child: GestureDetector(
+                                onTap: () async {
+                                  await context.push('/settings');
+                                  // Refresh weather when returning from settings
+                                  ref.invalidate(savedLocationProvider);
+                                  ref.invalidate(currentWeatherProvider);
+                                },
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                                  decoration: BoxDecoration(
+                                    color: Colors.blue.shade50,
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Icon(Icons.wb_sunny_outlined, size: 16, color: Colors.blue.shade400),
+                                      const SizedBox(width: 6),
+                                      Text(
+                                        '지역을 설정해주세요',
+                                        style: TextStyle(fontSize: 12, color: Colors.blue.shade600),
+                                      ),
+                                      const SizedBox(width: 4),
+                                      Icon(Icons.chevron_right, size: 16, color: Colors.blue.shade400),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            );
+                          }
+                          // Get saved city name
+                          final savedLocation = ref.watch(savedLocationProvider).valueOrNull;
+                          final cityName = savedLocation?.city ?? '';
+                          
                           return GestureDetector(
-                            onTap: () => context.push('/settings'),
+                            onTap: () async {
+                              await context.push('/settings');
+                              ref.invalidate(savedLocationProvider);
+                              ref.invalidate(currentWeatherProvider);
+                            },
                             child: Row(
                               mainAxisSize: MainAxisSize.min,
                               children: [
                                 Icon(
-                                  w.condition == 'sunny' ? Icons.wb_sunny : Icons.cloud,
+                                  _weatherIcon(w.condition),
                                   size: 22,
-                                  color: w.condition == 'sunny' ? Colors.orange : Colors.grey,
+                                  color: _weatherIconColor(w.condition),
                                 ),
                                 const SizedBox(width: 4),
-                                Text('$regionName ${w.temp.round()}°', style: const TextStyle(fontSize: 14)),
+                                Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    if (cityName.isNotEmpty)
+                                      Text(
+                                        cityName,
+                                        style: TextStyle(fontSize: 11, color: Colors.grey.shade600, fontWeight: FontWeight.w500),
+                                      ),
+                                    Text(
+                                      '${w.temp.round()}° ${_weatherConditionKo(w.condition)}',
+                                      style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+                                    ),
+                                  ],
+                                ),
                               ],
                             ),
                           );
                         },
-                        loading: () => const SizedBox(width: 60, height: 22, child: LinearProgressIndicator()),
+                        loading: () => const SizedBox(width: 80, height: 22, child: LinearProgressIndicator()),
                         error: (_, __) => const Icon(Icons.error_outline, size: 22),
                       ),
+
                       const SizedBox(width: 16),
                       healthAsync.when(
                         data: (h) => h.isEmpty
@@ -743,7 +830,7 @@ class _DiaryCreateScreenState extends ConsumerState<DiaryCreateScreen> {
                         return SizedBox(
                           width: double.infinity,
                           child: FilledButton.icon(
-                            onPressed: isDisabled ? null : _showAiGenerationModal,
+                            onPressed: isDisabled ? null : _startAiGenerationFlow,
                             icon: const Icon(Icons.auto_awesome),
                             label: Text(remaining > 0 
                               ? 'AI로 일기 생성 ($remaining회 남음)' 
@@ -806,6 +893,45 @@ class _DiaryCreateScreenState extends ConsumerState<DiaryCreateScreen> {
         Text(value, style: const TextStyle(fontSize: 13)),
       ],
     );
+  }
+
+  IconData _weatherIcon(String condition) {
+    switch (condition) {
+      case 'sunny': return Icons.wb_sunny;
+      case 'cloudy': return Icons.cloud;
+      case 'rainy': return Icons.water_drop;
+      case 'drizzle': return Icons.grain;
+      case 'snowy': return Icons.ac_unit;
+      case 'stormy': return Icons.thunderstorm;
+      case 'foggy': return Icons.foggy;
+      default: return Icons.cloud;
+    }
+  }
+
+  Color _weatherIconColor(String condition) {
+    switch (condition) {
+      case 'sunny': return Colors.orange;
+      case 'cloudy': return Colors.blueGrey;
+      case 'rainy': return Colors.blue;
+      case 'drizzle': return Colors.lightBlue;
+      case 'snowy': return Colors.cyan;
+      case 'stormy': return Colors.deepPurple;
+      case 'foggy': return Colors.grey;
+      default: return Colors.grey;
+    }
+  }
+
+  String _weatherConditionKo(String condition) {
+    switch (condition) {
+      case 'sunny': return '맑음';
+      case 'cloudy': return '흐림';
+      case 'rainy': return '비';
+      case 'drizzle': return '이슬비';
+      case 'snowy': return '눈';
+      case 'stormy': return '폭풍';
+      case 'foggy': return '안개';
+      default: return condition;
+    }
   }
 
   Widget _buildMoodSelector() {
