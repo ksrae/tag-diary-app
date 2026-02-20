@@ -6,6 +6,8 @@ on:
       - main
     paths:
       - 'apps/diary-server/**'
+      - 'firebase.json'
+      - '.github/workflows/deploy-firebase-functions.yml'
   workflow_dispatch:
 
 jobs:
