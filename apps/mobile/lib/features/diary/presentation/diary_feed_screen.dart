@@ -8,6 +8,7 @@ import 'package:mobile/features/diary/data/diary_repository.dart';
 import 'package:mobile/features/diary/presentation/widgets/diary_card.dart';
 import 'package:mobile/features/diary/presentation/widgets/memory_banner.dart';
 import 'package:mobile/features/diary/presentation/widgets/diary_calendar.dart';
+import 'package:flutter_slidable/flutter_slidable.dart';
 
 /// Main diary feed screen (SNS-style) with infinite scroll
 class DiaryFeedScreen extends ConsumerStatefulWidget {
@@ -257,52 +258,60 @@ class _DiaryFeedScreenState extends ConsumerState<DiaryFeedScreen> {
                         final diary = filteredDiaries[index];
                         return Padding(
                           padding: const EdgeInsets.only(bottom: 12),
-                          child: Dismissible(
+                          child: Slidable(
                             key: ValueKey(diary.id),
-                            direction: DismissDirection.endToStart,
-                            background: Container(
-                              alignment: Alignment.centerRight,
-                              padding: const EdgeInsets.symmetric(horizontal: 20),
-                              decoration: BoxDecoration(
-                                color: Colors.red,
-                                borderRadius: BorderRadius.circular(16),
-                              ),
-                              child: const Icon(Icons.delete, color: Colors.white),
-                            ),
-                            confirmDismiss: (direction) async {
-                              return await showDialog<bool>(
-                                context: context,
-                                builder: (context) => AlertDialog(
-                                  title: const Text('일기 삭제'),
-                                  content: const Text('정말로 이 일기를 삭제하시겠습니까?'),
-                                  actions: [
-                                    TextButton(
-                                      onPressed: () => Navigator.pop(context, false),
-                                      child: const Text('취소'),
-                                    ),
-                                    TextButton(
-                                      onPressed: () => Navigator.pop(context, true),
-                                      style: TextButton.styleFrom(foregroundColor: Colors.red),
-                                      child: const Text('삭제'),
-                                    ),
-                                  ],
+                            endActionPane: ActionPane(
+                              motion: const ScrollMotion(),
+                              extentRatio: 0.25,
+                              children: [
+                                SlidableAction(
+                                  onPressed: (context) async {
+                                    final confirm = await showDialog<bool>(
+                                      context: context,
+                                      builder: (context) => AlertDialog(
+                                        title: const Text('일기 삭제'),
+                                        content: const Text('정말로 이 일기를 삭제하시겠습니까?'),
+                                        actions: [
+                                          TextButton(
+                                            onPressed: () => Navigator.pop(context, false),
+                                            child: const Text('취소'),
+                                          ),
+                                          TextButton(
+                                            onPressed: () => Navigator.pop(context, true),
+                                            style: TextButton.styleFrom(foregroundColor: Colors.red),
+                                            child: const Text('삭제'),
+                                          ),
+                                        ],
+                                      ),
+                                    );
+
+                                    if (confirm == true) {
+                                      try {
+                                        await ref.read(diaryRepositoryProvider).deleteDiary(diary.id);
+                                        ref.read(infiniteScrollDiaryListProvider.notifier).removeDiary(diary.id);
+                                        if (context.mounted) {
+                                          ScaffoldMessenger.of(context).showSnackBar(
+                                            const SnackBar(content: Text('일기가 삭제되었습니다')),
+                                          );
+                                        }
+                                      } catch (e) {
+                                        if (context.mounted) {
+                                          ScaffoldMessenger.of(context).showSnackBar(
+                                            SnackBar(content: Text('삭제 실패: $e')),
+                                          );
+                                        }
+                                        ref.read(infiniteScrollDiaryListProvider.notifier).refresh();
+                                      }
+                                    }
+                                  },
+                                  backgroundColor: Colors.red,
+                                  foregroundColor: Colors.white,
+                                  icon: Icons.delete,
+                                  label: '삭제',
+                                  borderRadius: BorderRadius.circular(16),
                                 ),
-                              );
-                            },
-                            onDismissed: (direction) async {
-                              try {
-                                await ref.read(diaryRepositoryProvider).deleteDiary(diary.id);
-                                ref.read(infiniteScrollDiaryListProvider.notifier).removeDiary(diary.id);
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(content: Text('일기가 삭제되었습니다')),
-                                );
-                              } catch (e) {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(content: Text('삭제 실패: $e')),
-                                );
-                                ref.read(infiniteScrollDiaryListProvider.notifier).refresh();
-                              }
-                            },
+                              ],
+                            ),
                             child: DiaryCard(
                               diary: diary,
                               onTap: () => context.push('/diary/${diary.id}'),

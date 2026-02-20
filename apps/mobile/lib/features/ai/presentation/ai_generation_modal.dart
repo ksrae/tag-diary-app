@@ -308,7 +308,7 @@ class _AiGenerationInputSheetState extends ConsumerState<AiGenerationInputSheet>
             DropdownButtonFormField<String>(
               value: _selectedStyle,
               decoration: const InputDecoration(
-                border: OutlineInputBorder(),
+                border: InputBorder.none,
                 contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
               ),
               items: _styles.entries.map((e) => DropdownMenuItem(
@@ -328,39 +328,15 @@ class _AiGenerationInputSheetState extends ConsumerState<AiGenerationInputSheet>
             TextField(
               controller: _promptController,
               decoration: const InputDecoration(
-                hintText: '예: 긍정적인 분위기로 작성해줘',
+                hintText: '예: 긍정적인 분위기로 작성해줘 (최대 30자)',
                 border: OutlineInputBorder(),
               ),
-              maxLines: 2,
+              maxLength: 30,
+              maxLines: 1,
             ),
 
             const SizedBox(height: 16),
             
-            // Tag Selection
-            if (widget.tags.isNotEmpty) ...[
-              const Text('태그 선택 (AI가 참고할 태그)', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
-              const SizedBox(height: 8),
-              Wrap(
-                spacing: 8,
-                runSpacing: 4,
-                children: List.generate(widget.tags.length, (index) {
-                  final isSelected = _tagSelections[index];
-                  return FilterChip(
-                    label: Text('#${widget.tags[index]}'),
-                    selected: isSelected,
-                    onSelected: (selected) {
-                      setState(() {
-                        _tagSelections[index] = selected;
-                      });
-                    },
-                    selectedColor: Theme.of(context).colorScheme.primaryContainer,
-                    checkmarkColor: Theme.of(context).colorScheme.primary,
-                  );
-                }),
-              ),
-              const SizedBox(height: 16),
-            ],
-
             // Photo Selection
             if (widget.photos.isNotEmpty) ...[
               Row(
@@ -438,6 +414,35 @@ class _AiGenerationInputSheetState extends ConsumerState<AiGenerationInputSheet>
                     ),
                   );
                 },
+              ),
+              const SizedBox(height: 16),
+            ],
+
+            // Tag Selection
+            if (widget.tags.isNotEmpty) ...[
+              const Text('태그 선택 (AI가 참고할 태그)', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
+              const SizedBox(height: 8),
+              SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: Row(
+                  children: List.generate(widget.tags.length, (index) {
+                    final isSelected = _tagSelections[index];
+                    return Padding(
+                      padding: EdgeInsets.only(right: index < widget.tags.length - 1 ? 8.0 : 0),
+                      child: FilterChip(
+                        label: Text('#${widget.tags[index]}'),
+                        selected: isSelected,
+                        onSelected: (selected) {
+                          setState(() {
+                            _tagSelections[index] = selected;
+                          });
+                        },
+                        selectedColor: Theme.of(context).colorScheme.primaryContainer,
+                        checkmarkColor: Theme.of(context).colorScheme.primary,
+                      ),
+                    );
+                  }),
+                ),
               ),
               const SizedBox(height: 16),
             ],
