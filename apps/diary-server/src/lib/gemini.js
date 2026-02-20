@@ -39,8 +39,9 @@ const PROMPTS = {
        - If SNS style is requested, write 3-4 short sentences with hashtags.
        - Otherwise, aim for about 7-9 sentences that reflect personal experience and emotion.
 
-    7. **Remove unrelated words**
-       - Do not write unrelated with contents of diary.
+    7. **Remove unrelated words & Strict Weather Constraint**:
+       - Do not write unrelated content.
+       - If the weather information says "None" or is not provided, DO NOT mention or invent any weather (e.g., sunny, rainy, cold, etc.) under any circumstance.
        `,
   },
   ko: {
@@ -72,8 +73,10 @@ const PROMPTS = {
     6. **글 길이 조절**:
        - SNS 스타일 요청 시: 3-4문장으로 짧게 작성하고 해시태그를 포함하세요.
        - 일반 스타일: 7-9문장으로 개인의 경험과 감정에 집중하세요.
-    7. **필요 없는 내용은 생략**
+
+    7. **필요 없는 내용 및 날씨 창작 절대 금지**:
        - 일기의 내용과 관계 없는 내용은 작성하지 마세요.
+       - 주어진 데이터에 '날씨' 정보가 없다면("없음"), 절대 일기에 날씨(맑음, 흐림, 비, 더움, 추움 등)를 언급하거나 꾸며내지 마세요. 사진에 날씨가 보여도 언급하지 마세요.
        `,
   },
 };
@@ -97,8 +100,8 @@ export async function generateDiary({ prompt, mood, weather, sources, images, la
 
   const contextText = `
 [하루 기록 데이터]
-기분: ${mood || "평범함"}
-날씨: ${weather?.condition || "알 수 없음"}, ${weather?.temp || ""}°C
+기분: ${mood || "선택 안 함"}
+${weather ? `날씨: ${weather.condition}, ${weather.temp}°C` : "날씨: 없음 (본문에 날씨 작성 금지)"}
 수집된 정보:
 ${sources?.map((s) => `- [${s.type}] ${s.contentPreview || s.content_preview}`).join("\n") || "데이터 없음"}
 
