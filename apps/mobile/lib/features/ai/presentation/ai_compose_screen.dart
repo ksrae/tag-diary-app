@@ -9,9 +9,9 @@ import 'package:mobile/features/ai/application/ai_service.dart';
 import 'package:mobile/features/shared/data/health_repository.dart';
 import 'package:mobile/features/shared/data/models/health_info.dart';
 import 'package:mobile/features/shared/application/weather_service.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:mobile/features/premium/presentation/paywall_screen.dart';
 import 'package:mobile/features/premium/application/purchase_provider.dart';
+import 'package:mobile/features/ai/application/ai_usage_service.dart';
 
 class AiComposeScreen extends ConsumerStatefulWidget {
   final List<SourceItem> initialPhotoItems;
@@ -88,35 +88,29 @@ class _AiComposeScreenState extends ConsumerState<AiComposeScreen> {
   }
 
   Future<void> _generateDiary() async {
-    final isPro = ref.read(isProProvider);
-    if (!isPro) {
-      final prefs = await SharedPreferences.getInstance();
-      final today = DateTime.now().toIso8601String().split('T')[0];
-      final key = 'ai_usage_$today';
-      final count = prefs.getInt(key) ?? 0;
-      
-      if (count >= 3) {
-        if (mounted) {
-           showDialog(
-             context: context,
-             builder: (context) => AlertDialog(
-               title: const Text('일일 사용량 초과'),
-               content: const Text('무료 버전은 하루 3회까지 AI 일기를 생성할 수 있습니다.\n무제한 생성을 위해 Pro로 업그레이드하세요.'),
-               actions: [
-                 TextButton(onPressed: () => Navigator.pop(context), child: const Text('취소')),
-                 FilledButton(
-                   onPressed: () {
-                     Navigator.pop(context);
-                     Navigator.push(context, MaterialPageRoute(builder: (_) => const PaywallScreen()));
-                   },
-                   child: const Text('업그레이드'),
-                 ),
-               ],
-             ),
-           );
-        }
-        return;
+    final aiUsage = ref.read(aiUsageServiceProvider);
+
+    if (!(await aiUsage.canGenerate())) {
+      if (mounted) {
+         showDialog(
+           context: context,
+           builder: (context) => AlertDialog(
+             title: const Text('일일 사용량 초과'),
+             content: const Text('무료 버전은 광고 시청 후 생성이 가능하며, Pro 버전은 하루 3회까지 AI 일기를 생성할 수 있습니다.\n무제한 생성을 위해 Pro로 업그레이드하세요.'),
+             actions: [
+               TextButton(onPressed: () => Navigator.pop(context), child: const Text('취소')),
+               FilledButton(
+                 onPressed: () {
+                   Navigator.pop(context);
+                   Navigator.push(context, MaterialPageRoute(builder: (_) => const PaywallScreen()));
+                 },
+                 child: const Text('업그레이드'),
+               ),
+             ],
+           ),
+         );
       }
+      return;
     }
 
     if (_tags.isEmpty && _selectedStyle != 'basic_style') {
@@ -185,13 +179,7 @@ Health: $healthStr
       );
 
       // Increment usage count on success
-      if (!isPro) {
-        final prefs = await SharedPreferences.getInstance();
-        final today = DateTime.now().toIso8601String().split('T')[0];
-        final key = 'ai_usage_$today';
-        final count = prefs.getInt(key) ?? 0;
-        await prefs.setInt(key, count + 1);
-      }
+      await aiUsage.incrementUsage();
 
       if (mounted) {
         Navigator.pop(context, result);

@@ -15,12 +15,19 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:mobile/features/diary/data/models/diary.dart';
+import 'package:google_mobile_ads/google_mobile_ads.dart';
+import 'package:hive_flutter/hive_flutter.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:mobile/features/diary/data/models/diary.dart';
 import 'dart:convert';
 import 'dart:typed_data';
 
 void main() async {
   WidgetsBinding widgetsBinding = WidgetsFlutterBinding.ensureInitialized();
   FlutterNativeSplash.preserve(widgetsBinding: widgetsBinding);
+
+  // Initialize AdMob
+  MobileAds.instance.initialize();
 
   // Initialize Hive
   await Hive.initFlutter();
