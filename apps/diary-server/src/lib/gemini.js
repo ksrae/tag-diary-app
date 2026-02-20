@@ -3,14 +3,14 @@ import { GoogleGenerativeAI } from "@google/generative-ai";
 const apiKey = process.env.GEMINI_API_KEY;
 
 if (!apiKey) {
-  console.warn("Missing GEMINI_API_KEY environment variable");
+   console.warn("Missing GEMINI_API_KEY environment variable");
 }
 
 const genAI = new GoogleGenerativeAI(apiKey || "");
 
 const PROMPTS = {
-  en: {
-    analyze: `
+   en: {
+      analyze: `
     ### Task:
     Write a **personal diary entry** inspired by the photo(s) provided and the given additional information. Your goal is to vividly describe the moment captured in the photo(s), incorporating the details from "additional_text" if provided.
     
@@ -47,9 +47,9 @@ const PROMPTS = {
     8. **No Meta-Text or Headings**:
        - DO NOT write any titles, headings, or markdown headers (e.g., "## SNS Style", "Diary Entry:"). Just output the raw diary content directly.
        `,
-  },
-  ko: {
-    analyze: `
+   },
+   ko: {
+      analyze: `
     ### 과제:
     제공된 사진과 추가 정보("additional_text")를 바탕으로 **개인적인 일기**를 작성하세요. 사진 속 순간을 생생하게 묘사하며, "additional_text"에 있는 내용을 포함해 작성하세요.
     
@@ -86,7 +86,7 @@ const PROMPTS = {
     8. **제목 및 불필요한 서문 작성 금지 (매우 중요)**:
        - 일기 내용 시작 전에 "## SNS 스타일", "## 일반 스타일", "오늘의 일기:" 와 같은 형식적인 마크다운 제목이나 머리말을 절대 작성하지 마세요. 질문자에게 대답하는 말 없이 오직 **순수 일기 본문만 바로 출력**하세요.
        `,
-  },
+   },
 };
 
 /**
@@ -101,12 +101,12 @@ const PROMPTS = {
  * @returns {Promise<string>} Generated diary content
  */
 export async function generateDiary({ prompt, mood, weather, sources, images, lang = "ko" }) {
-  // Using gemini-2.5-flash as requested (Note: ensure this model name is supported by your API key)
-  const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash-lite" });
+   // Using gemini-2.0-flash as the stable reliable model
+   const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
 
-  const basePrompt = PROMPTS[lang]?.analyze || PROMPTS.ko.analyze;
+   const basePrompt = PROMPTS[lang]?.analyze || PROMPTS.ko.analyze;
 
-  const contextText = `
+   const contextText = `
 [하루 기록 데이터]
 기분: ${mood || "선택 안 함"}
 ${weather ? `날씨: ${weather.condition}, ${weather.temp}°C` : "날씨: 없음 (본문에 날씨 작성 금지)"}
@@ -117,27 +117,27 @@ ${sources?.map((s) => `- [${s.type}] ${s.contentPreview || s.content_preview}`).
 ${prompt || "오늘 하루에 대한 특별한 요청사항은 없습니다."}
 `;
 
-  const parts = [{ text: basePrompt }, { text: contextText }];
+   const parts = [{ text: basePrompt }, { text: contextText }];
 
-  if (images && images.length > 0) {
-    for (const base64Data of images) {
-      if (base64Data) {
-        parts.push({
-          inlineData: {
-            mimeType: "image/jpeg",
-            data: base64Data.split(",").pop(),
-          },
-        });
+   if (images && images.length > 0) {
+      for (const base64Data of images) {
+         if (base64Data) {
+            parts.push({
+               inlineData: {
+                  mimeType: "image/jpeg",
+                  data: base64Data.split(",").pop(),
+               },
+            });
+         }
       }
-    }
-  }
+   }
 
-  try {
-    const result = await model.generateContent(parts);
-    const response = await result.response;
-    return response.text();
-  } catch (error) {
-    console.error("Gemini Generation Error:", error);
-    throw error;
-  }
+   try {
+      const result = await model.generateContent(parts);
+      const response = await result.response;
+      return response.text();
+   } catch (error) {
+      console.error("Gemini Generation Error:", error);
+      throw error;
+   }
 }
