@@ -6,6 +6,7 @@ import 'package:mobile/features/diary/data/models/diary.dart';
 import 'package:mobile/features/diary/data/models/mood.dart';
 import 'package:mobile/features/shared/data/models/health_info.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:mobile/features/premium/application/purchase_provider.dart';
 
 // --- Data Class ---
 
@@ -489,11 +490,13 @@ class _AiGenerationInputSheetState extends ConsumerState<AiGenerationInputSheet>
 
 class AiGenerationResultDialog extends ConsumerStatefulWidget {
   final AiGenerationOptions options;
+  final bool isLastGeneration;
   final Future<String> Function(AiGenerationOptions options) onGenerate;
 
   const AiGenerationResultDialog({
     super.key,
     required this.options,
+    required this.isLastGeneration,
     required this.onGenerate,
   });
 
@@ -642,12 +645,42 @@ class _AiGenerationResultDialogState extends ConsumerState<AiGenerationResultDia
         const SizedBox(height: 20),
         Row(
           children: [
-            Expanded(
-              child: OutlinedButton(
-                onPressed: () => Navigator.pop(context, 'retry'), // Retry with same options
-                child: const Text('다시 생성'),
+            if (!widget.isLastGeneration)
+              Expanded(
+                child: OutlinedButton(
+                  onPressed: () => Navigator.pop(context, 'retry'), // Retry with same options
+                  child: const Text('다시 생성'),
+                ),
+              )
+            else
+              Expanded(
+                child: OutlinedButton(
+                  onPressed: () async {
+                    final confirm = await showDialog<bool>(
+                      context: context,
+                      builder: (context) => AlertDialog(
+                        title: const Text('취소 확인'),
+                        content: const Text('취소하시면 오늘은 더 이상 AI 생성이 불가능합니다.\n정말 취소하시겠습니까?'),
+                        actions: [
+                          TextButton(
+                            onPressed: () => Navigator.pop(context, false), 
+                            child: const Text('돌아가기')
+                          ),
+                          TextButton(
+                            onPressed: () => Navigator.pop(context, true), 
+                            style: TextButton.styleFrom(foregroundColor: Colors.red),
+                            child: const Text('취소하기'),
+                          ),
+                        ],
+                      ),
+                    );
+                    if (confirm == true) {
+                      Navigator.pop(context, null); // completely cancel out of the dialog
+                    }
+                  },
+                  child: const Text('취소'),
+                ),
               ),
-            ),
             const SizedBox(width: 12),
             Expanded(
               child: FilledButton(

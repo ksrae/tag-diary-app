@@ -196,4 +196,16 @@ class NotificationService {
     // Mood values from enum: happy, sad, peaceful, angry, tired, loved
     return ['sad', 'angry', 'tired'].contains(mood);
   }
+
+  Future<void> scheduleTestNotification() async {
+    final now = DateTime.now();
+    final scheduleDate = now.add(const Duration(seconds: 5));
+    
+    await _scheduleNotification(
+      id: 9999,
+      title: '테스트 알림 완료!',
+      body: '정상적으로 알림이 설정되었습니다. (이 알림은 설정 저장 5초 후 나타납니다)',
+      date: scheduleDate,
+    );
+  }
 }
