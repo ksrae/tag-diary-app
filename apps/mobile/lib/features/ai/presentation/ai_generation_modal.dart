@@ -323,7 +323,7 @@ class _AiGenerationInputSheetState extends ConsumerState<AiGenerationInputSheet>
             const SizedBox(height: 16),
 
             // Custom Prompt
-            const Text('스타일에 추가 요청사항 (선택)', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
+            const Text('AI가 참고할 수 있게 전달할 내용이 있나요? (선택)', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
             const SizedBox(height: 8),
             TextField(
               controller: _promptController,
