@@ -41,6 +41,7 @@ if (process.env.NODE_ENV !== "production") {
 }
 
 // Export for Firebase Functions
+// Trigger new deployment for the updated tag-diary-c50e2 project
 import { onRequest } from "firebase-functions/v2/https";
 // Deploy as API endpoint to Seoul region (Asia Northeast3)
 export const api = onRequest({ region: "asia-northeast3" }, app);
