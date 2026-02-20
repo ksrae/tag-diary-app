@@ -248,6 +248,9 @@ class _DiaryCreateScreenState extends ConsumerState<DiaryCreateScreen> {
 
     final healthAsync = ref.read(todayHealthProvider);
     final health = healthAsync.valueOrNull;
+    
+    final weatherAsync = ref.read(currentWeatherProvider);
+    final currentWeatherData = _weather ?? weatherAsync.valueOrNull;
 
     AiGenerationOptions? processingOptions;
 
@@ -262,7 +265,7 @@ class _DiaryCreateScreenState extends ConsumerState<DiaryCreateScreen> {
         builder: (context) => AiGenerationInputSheet(
           photos: _selectedPhotos, 
           healthInfo: health,
-          weather: _weather,
+          weather: currentWeatherData,
           tags: _tags,
           mood: _selectedMood,
           initialOptions: processingOptions,
