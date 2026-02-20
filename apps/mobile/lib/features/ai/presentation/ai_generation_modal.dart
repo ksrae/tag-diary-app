@@ -16,6 +16,8 @@ class AiGenerationOptions {
   final String customPrompt;
   final String selectedStyle;
   final List<bool> photoSelections; // To restore specific checkmarks
+  final List<String> selectedTags;
+  final List<bool> tagSelections; // To restore specific checkmarks
 
   AiGenerationOptions({
     required this.selectedPhotos,
@@ -24,6 +26,8 @@ class AiGenerationOptions {
     required this.customPrompt,
     required this.selectedStyle,
     required this.photoSelections,
+    required this.selectedTags,
+    required this.tagSelections,
   });
 }
 
@@ -60,6 +64,7 @@ class AiGenerationInputSheet extends ConsumerStatefulWidget {
 
 class _AiGenerationInputSheetState extends ConsumerState<AiGenerationInputSheet> {
   late List<bool> _photoSelections;
+  late List<bool> _tagSelections;
   late bool _includeHealth;
   late bool _includeWeather;
   late String _selectedStyle;
@@ -94,6 +99,12 @@ class _AiGenerationInputSheetState extends ConsumerState<AiGenerationInputSheet>
       } else {
         _photoSelections = List.generate(widget.photos.length, (i) => i < 3);
       }
+
+      if (op.tagSelections.length == widget.tags.length) {
+        _tagSelections = List.from(op.tagSelections);
+      } else {
+        _tagSelections = List.generate(widget.tags.length, (_) => true);
+      }
     } else {
       // Default init
       _selectedStyle = 'basic_style';
@@ -101,6 +112,7 @@ class _AiGenerationInputSheetState extends ConsumerState<AiGenerationInputSheet>
       _includeWeather = true;
       _promptController = TextEditingController();
       _photoSelections = List.generate(widget.photos.length, (i) => i < 3);
+      _tagSelections = List.generate(widget.tags.length, (_) => true);
       _loadSavedStyle();
     }
   }
@@ -151,6 +163,13 @@ class _AiGenerationInputSheetState extends ConsumerState<AiGenerationInputSheet>
       }
     }
 
+    final selectedTags = <String>[];
+    for (int i = 0; i < widget.tags.length; i++) {
+      if (_tagSelections[i]) {
+        selectedTags.add(widget.tags[i]);
+      }
+    }
+
     final options = AiGenerationOptions(
       selectedPhotos: selectedPhotos,
       includeHealth: _includeHealth,
@@ -158,6 +177,8 @@ class _AiGenerationInputSheetState extends ConsumerState<AiGenerationInputSheet>
       customPrompt: _promptController.text.trim(),
       selectedStyle: _selectedStyle,
       photoSelections: List.from(_photoSelections),
+      selectedTags: selectedTags,
+      tagSelections: List.from(_tagSelections),
     );
 
     Navigator.pop(context, options);
@@ -174,11 +195,13 @@ class _AiGenerationInputSheetState extends ConsumerState<AiGenerationInputSheet>
       ));
     }
     
-    for (final tag in widget.tags) {
-      chips.add(Chip(
-        label: Text('#$tag'),
-        visualDensity: VisualDensity.compact,
-      ));
+    for (int i = 0; i < widget.tags.length; i++) {
+      if (_tagSelections[i]) {
+        chips.add(Chip(
+          label: Text('#${widget.tags[i]}'),
+          visualDensity: VisualDensity.compact,
+        ));
+      }
     }
     
     if (_selectedPhotoCount > 0) {
@@ -299,6 +322,45 @@ class _AiGenerationInputSheetState extends ConsumerState<AiGenerationInputSheet>
 
             const SizedBox(height: 16),
 
+            // Custom Prompt
+            const Text('스타일에 추가 요청사항 (선택)', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
+            const SizedBox(height: 8),
+            TextField(
+              controller: _promptController,
+              decoration: const InputDecoration(
+                hintText: '예: 긍정적인 분위기로 작성해줘',
+                border: OutlineInputBorder(),
+              ),
+              maxLines: 2,
+            ),
+
+            const SizedBox(height: 16),
+            
+            // Tag Selection
+            if (widget.tags.isNotEmpty) ...[
+              const Text('태그 선택 (AI가 참고할 태그)', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
+              const SizedBox(height: 8),
+              Wrap(
+                spacing: 8,
+                runSpacing: 4,
+                children: List.generate(widget.tags.length, (index) {
+                  final isSelected = _tagSelections[index];
+                  return FilterChip(
+                    label: Text('#${widget.tags[index]}'),
+                    selected: isSelected,
+                    onSelected: (selected) {
+                      setState(() {
+                        _tagSelections[index] = selected;
+                      });
+                    },
+                    selectedColor: Theme.of(context).colorScheme.primaryContainer,
+                    checkmarkColor: Theme.of(context).colorScheme.primary,
+                  );
+                }),
+              ),
+              const SizedBox(height: 16),
+            ],
+
             // Photo Selection
             if (widget.photos.isNotEmpty) ...[
               Row(
@@ -399,20 +461,6 @@ class _AiGenerationInputSheetState extends ConsumerState<AiGenerationInputSheet>
                 onChanged: (v) => setState(() => _includeHealth = v),
                 contentPadding: EdgeInsets.zero,
               ),
-
-            const SizedBox(height: 16),
-
-            // Custom Prompt
-            const Text('추가 요청사항 (선택)', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
-            const SizedBox(height: 8),
-            TextField(
-              controller: _promptController,
-              decoration: const InputDecoration(
-                hintText: '예: 긍정적인 분위기로 작성해줘',
-                border: OutlineInputBorder(),
-              ),
-              maxLines: 2,
-            ),
 
             const SizedBox(height: 24),
 
