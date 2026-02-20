@@ -283,6 +283,7 @@ class _DiaryCreateScreenState extends ConsumerState<DiaryCreateScreen> {
             opts.includeHealth,
             opts.customPrompt,
             opts.selectedStyle,
+            opts.includeWeather,
           ),
         ),
       );
@@ -309,7 +310,7 @@ class _DiaryCreateScreenState extends ConsumerState<DiaryCreateScreen> {
   }
 
 
-  Future<String> _generateWithAI(List<SourceItem> selectedPhotos, bool includeHealth, String customPrompt, String selectedStyle) async {
+  Future<String> _generateWithAI(List<SourceItem> selectedPhotos, bool includeHealth, String customPrompt, String selectedStyle, bool includeWeather) async {
     final isPro = ref.read(isProProvider);
     
     // Free users cannot use AI at all
@@ -342,7 +343,7 @@ class _DiaryCreateScreenState extends ConsumerState<DiaryCreateScreen> {
       contextParts.add('기분: ${_selectedMood!.label}');
     }
     
-    if (weather.condition != 'unknown') {
+    if (includeWeather && weather.condition != 'unknown') {
       contextParts.add('날씨: ${weather.temp}°C ${weather.condition}');
     }
     
@@ -381,7 +382,7 @@ class _DiaryCreateScreenState extends ConsumerState<DiaryCreateScreen> {
       images: selectedPhotos.take(3).where((p) => p.imageFile != null).map((i) => i.imageFile!).toList(),
       contextData: contextData,
       mood: _selectedMood?.label,
-      weather: weather.toJson(),
+      weather: includeWeather ? weather.toJson() : null,
       sources: _tags.map((t) => {'type': 'tag', 'appName': 'user', 'contentPreview': t, 'selected': true}).toList(),
       userPrompt: stylePrompt,
     );
