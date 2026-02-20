@@ -42,7 +42,6 @@ apps/api/
 apps/worker/
 apps/infra/
 packages/
-.agent/
 .opencode/
 .serena/
 .gemini/
