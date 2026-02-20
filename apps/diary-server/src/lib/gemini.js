@@ -101,8 +101,8 @@ const PROMPTS = {
  * @returns {Promise<string>} Generated diary content
  */
 export async function generateDiary({ prompt, mood, weather, sources, images, lang = "ko" }) {
-   // Using gemini-2.0-flash as the stable reliable model
-   const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
+   // Using gemini-2.5-flash-lite as requested
+   const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash-lite" });
 
    const basePrompt = PROMPTS[lang]?.analyze || PROMPTS.ko.analyze;
 
