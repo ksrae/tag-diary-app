@@ -1,6 +1,6 @@
 import { Router } from "express";
-import { generateDiary } from "../lib/gemini.js";
 import { getUserInfo } from "../lib/api.js";
+import { generateDiary } from "../lib/gemini.js";
 
 export const aiRouter = Router();
 
@@ -11,14 +11,14 @@ aiRouter.post("/generate", async (req, res) => {
 
     // === DEV_BYPASS_START ===
     // Check Pro status (skip when SKIP_AUTH=true)
-    const skipAuth = process.env.SKIP_AUTH === 'true';
+    const skipAuth = process.env.SKIP_AUTH === "true";
     if (!skipAuth) {
-    // === DEV_BYPASS_END ===
+      // === DEV_BYPASS_END ===
       const userInfo = await getUserInfo(req.user.user_id, req.headers.authorization.split(" ")[1]);
       if (!userInfo || !userInfo.is_pro) {
         return res.status(403).json({ error: "Pro subscription required for AI generation" });
       }
-    // === DEV_BYPASS_START ===
+      // === DEV_BYPASS_START ===
     }
     // === DEV_BYPASS_END ===
 
@@ -38,29 +38,29 @@ aiRouter.post("/regenerate", async (req, res) => {
     const { prompt, mood, weather, sources, previous_content, images } = req.body;
 
     // Generate with context of previous content
-    const enhancedPrompt = previous_content 
+    const enhancedPrompt = previous_content
       ? `이전 내용을 참고하되 다른 방식으로 작성해주세요. 이전 내용: ${previous_content}\n\n새 요청: ${prompt}`
       : prompt;
 
     // === DEV_BYPASS_START ===
     // Check Pro status (skip when SKIP_AUTH=true)
-    const skipAuth = process.env.SKIP_AUTH === 'true';
+    const skipAuth = process.env.SKIP_AUTH === "true";
     if (!skipAuth) {
-    // === DEV_BYPASS_END ===
+      // === DEV_BYPASS_END ===
       const userInfo = await getUserInfo(req.user.user_id, req.headers.authorization.split(" ")[1]);
       if (!userInfo || !userInfo.is_pro) {
         return res.status(403).json({ error: "Pro subscription required for AI generation" });
       }
-    // === DEV_BYPASS_START ===
+      // === DEV_BYPASS_START ===
     }
     // === DEV_BYPASS_END ===
 
-    const content = await generateDiary({ 
-      prompt: enhancedPrompt, 
-      mood, 
-      weather, 
+    const content = await generateDiary({
+      prompt: enhancedPrompt,
+      mood,
+      weather,
       sources,
-      images
+      images,
     });
 
     res.json({ content });

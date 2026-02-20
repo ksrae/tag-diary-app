@@ -75,7 +75,7 @@ const PROMPTS = {
     7. **필요 없는 내용은 생략**
        - 일기의 내용과 관계 없는 내용은 작성하지 마세요.
        `,
-  }
+  },
 };
 
 /**
@@ -89,9 +89,9 @@ const PROMPTS = {
  * @param {string} params.lang - Language ('ko' or 'en')
  * @returns {Promise<string>} Generated diary content
  */
-export async function generateDiary({ prompt, mood, weather, sources, images, lang = 'ko' }) {
+export async function generateDiary({ prompt, mood, weather, sources, images, lang = "ko" }) {
   // Using gemini-2.5-flash as requested (Note: ensure this model name is supported by your API key)
-  const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
+  const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash-lite" });
 
   const basePrompt = PROMPTS[lang]?.analyze || PROMPTS.ko.analyze;
 
@@ -106,10 +106,7 @@ ${sources?.map((s) => `- [${s.type}] ${s.contentPreview || s.content_preview}`).
 ${prompt || "오늘 하루에 대한 특별한 요청사항은 없습니다."}
 `;
 
-  const parts = [
-    { text: basePrompt },
-    { text: contextText }
-  ];
+  const parts = [{ text: basePrompt }, { text: contextText }];
 
   if (images && images.length > 0) {
     for (const base64Data of images) {
@@ -117,8 +114,8 @@ ${prompt || "오늘 하루에 대한 특별한 요청사항은 없습니다."}
         parts.push({
           inlineData: {
             mimeType: "image/jpeg",
-            data: base64Data.split(',').pop()
-          }
+            data: base64Data.split(",").pop(),
+          },
         });
       }
     }

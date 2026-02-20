@@ -2,7 +2,7 @@ import { compactDecrypt } from "jose";
 
 /**
  * Middleware to verify JWE authentication token
- * 
+ *
  * SECURITY NOTES:
  * - Validates token structure (Bearer prefix)
  * - Decrypts JWE using A256KW + A256GCM (must match Python backend)
@@ -12,11 +12,11 @@ import { compactDecrypt } from "jose";
 export const authMiddleware = async (req, res, next) => {
   // === DEV_BYPASS_START ===
   // Skip authentication when SKIP_AUTH=true (for testing on Vercel)
-  if (process.env.SKIP_AUTH === 'true') {
-    console.log('[DEV] Skipping authentication (SKIP_AUTH=true)');
+  if (process.env.SKIP_AUTH === "true") {
+    console.log("[DEV] Skipping authentication (SKIP_AUTH=true)");
     req.user = {
-      user_id: 'dev-test-user',
-      token_type: 'access',
+      user_id: "dev-test-user",
+      token_type: "access",
       is_pro: true,
     };
     return next();
