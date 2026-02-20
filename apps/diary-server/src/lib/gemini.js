@@ -3,14 +3,14 @@ import { GoogleGenerativeAI } from "@google/generative-ai";
 const apiKey = process.env.GEMINI_API_KEY;
 
 if (!apiKey) {
-   console.warn("Missing GEMINI_API_KEY environment variable");
+  console.warn("Missing GEMINI_API_KEY environment variable");
 }
 
 const genAI = new GoogleGenerativeAI(apiKey || "");
 
 const PROMPTS = {
-   en: {
-      analyze: `
+  en: {
+    analyze: `
     ### Task:
     Write a **personal diary entry** inspired by the photo(s) provided and the given additional information. Your goal is to vividly describe the moment captured in the photo(s), incorporating the details from "additional_text" if provided.
     
@@ -35,9 +35,10 @@ const PROMPTS = {
        - Do NOT analyze or interpret beyond the visible or mentioned details.
        - Stick strictly to the provided context.
     
-    6. **Keep it Short and Authentic**:
-       - If SNS style is requested, write 3-4 short sentences with hashtags.
-       - Otherwise, aim for about 7-9 sentences that reflect personal experience and emotion.
+    6. **One Style ONLY**:
+       - Write EXACTLY ONE diary entry matching the specific style requested in "additional_text".
+       - DO NOT write multiple versions (e.g., do not output both a normal style and an SNS style).
+       - Adapt the length based on the requested style (e.g., SNS: 3-4 sentences with hashtags, normal: 7-9 sentences).
 
     7. **Remove unrelated words & Strict Weather Constraint**:
        - Do not write unrelated content.
@@ -46,9 +47,9 @@ const PROMPTS = {
     8. **No Meta-Text or Headings**:
        - DO NOT write any titles, headings, or markdown headers (e.g., "## SNS Style", "Diary Entry:"). Just output the raw diary content directly.
        `,
-   },
-   ko: {
-      analyze: `
+  },
+  ko: {
+    analyze: `
     ### 과제:
     제공된 사진과 추가 정보("additional_text")를 바탕으로 **개인적인 일기**를 작성하세요. 사진 속 순간을 생생하게 묘사하며, "additional_text"에 있는 내용을 포함해 작성하세요.
     
@@ -73,9 +74,10 @@ const PROMPTS = {
        - 사진과 "additional_text"를 분석하거나 가정하지 말고, 외부적인 해석은 피하세요.
        - 주어진 맥락에서만 글을 작성하세요.
     
-    6. **글 길이 조절**:
-       - SNS 스타일 요청 시: 3-4문장으로 짧게 작성하고 해시태그를 포함하세요.
-       - 일반 스타일: 7-9문장으로 개인의 경험과 감정에 집중하세요.
+    6. **단 하나의 스타일로만 작성 (복수 작성 금지)**:
+       - "additional_text"에서 요청한 **정확히 하나의 스타일(예: SNS, 시, 편지 등)**로만 전체 일기를 작성하세요.
+       - 절대로 여러 가지 스타일의 버전(예: 일반 스타일 버전 1개, SNS 스타일 버전 1개 등 총 2개 이상)을 동시에 이어서 작성하지 마세요. 오직 단 1개의 일기만 출력해야 합니다.
+       - 길이는 요청된 스타일에 맞게 자체적으로 조절하세요 (예: SNS는 해시태그 포함 3~4문장, 일반 일기는 7~9문장 등).
 
     7. **필요 없는 내용 및 날씨 창작 절대 금지**:
        - 일기의 내용과 관계 없는 내용은 작성하지 마세요.
@@ -84,7 +86,7 @@ const PROMPTS = {
     8. **제목 및 불필요한 서문 작성 금지 (매우 중요)**:
        - 일기 내용 시작 전에 "## SNS 스타일", "## 일반 스타일", "오늘의 일기:" 와 같은 형식적인 마크다운 제목이나 머리말을 절대 작성하지 마세요. 질문자에게 대답하는 말 없이 오직 **순수 일기 본문만 바로 출력**하세요.
        `,
-   },
+  },
 };
 
 /**
@@ -99,12 +101,12 @@ const PROMPTS = {
  * @returns {Promise<string>} Generated diary content
  */
 export async function generateDiary({ prompt, mood, weather, sources, images, lang = "ko" }) {
-   // Using gemini-2.5-flash as requested (Note: ensure this model name is supported by your API key)
-   const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash-lite" });
+  // Using gemini-2.5-flash as requested (Note: ensure this model name is supported by your API key)
+  const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash-lite" });
 
-   const basePrompt = PROMPTS[lang]?.analyze || PROMPTS.ko.analyze;
+  const basePrompt = PROMPTS[lang]?.analyze || PROMPTS.ko.analyze;
 
-   const contextText = `
+  const contextText = `
 [하루 기록 데이터]
 기분: ${mood || "선택 안 함"}
 ${weather ? `날씨: ${weather.condition}, ${weather.temp}°C` : "날씨: 없음 (본문에 날씨 작성 금지)"}
@@ -115,27 +117,27 @@ ${sources?.map((s) => `- [${s.type}] ${s.contentPreview || s.content_preview}`).
 ${prompt || "오늘 하루에 대한 특별한 요청사항은 없습니다."}
 `;
 
-   const parts = [{ text: basePrompt }, { text: contextText }];
+  const parts = [{ text: basePrompt }, { text: contextText }];
 
-   if (images && images.length > 0) {
-      for (const base64Data of images) {
-         if (base64Data) {
-            parts.push({
-               inlineData: {
-                  mimeType: "image/jpeg",
-                  data: base64Data.split(",").pop(),
-               },
-            });
-         }
+  if (images && images.length > 0) {
+    for (const base64Data of images) {
+      if (base64Data) {
+        parts.push({
+          inlineData: {
+            mimeType: "image/jpeg",
+            data: base64Data.split(",").pop(),
+          },
+        });
       }
-   }
+    }
+  }
 
-   try {
-      const result = await model.generateContent(parts);
-      const response = await result.response;
-      return response.text();
-   } catch (error) {
-      console.error("Gemini Generation Error:", error);
-      throw error;
-   }
+  try {
+    const result = await model.generateContent(parts);
+    const response = await result.response;
+    return response.text();
+  } catch (error) {
+    console.error("Gemini Generation Error:", error);
+    throw error;
+  }
 }
