@@ -3,6 +3,9 @@
   "version": "1.0.0",
   "description": "Gemini AI Diary Proxy Server",
   "type": "module",
+  "engines": {
+    "node": "20"
+  },
   "main": "src/index.js",
   "scripts": {
     "dev": "node --watch src/index.js",
