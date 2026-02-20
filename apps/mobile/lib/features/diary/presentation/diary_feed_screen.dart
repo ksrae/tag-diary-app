@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:mobile/features/diary/application/diary_provider.dart';
 import 'package:mobile/features/diary/data/models/diary.dart';
+import 'package:mobile/features/diary/data/diary_repository.dart';
 import 'package:mobile/features/diary/presentation/widgets/diary_card.dart';
 import 'package:mobile/features/diary/presentation/widgets/memory_banner.dart';
 import 'package:mobile/features/diary/presentation/widgets/diary_calendar.dart';
@@ -253,11 +254,59 @@ class _DiaryFeedScreenState extends ConsumerState<DiaryFeedScreen> {
                         
                         if (index >= filteredDiaries.length) return null;
                         
+                        final diary = filteredDiaries[index];
                         return Padding(
                           padding: const EdgeInsets.only(bottom: 12),
-                          child: DiaryCard(
-                            diary: filteredDiaries[index],
-                            onTap: () => context.push('/diary/${filteredDiaries[index].id}'),
+                          child: Dismissible(
+                            key: ValueKey(diary.id),
+                            direction: DismissDirection.endToStart,
+                            background: Container(
+                              alignment: Alignment.centerRight,
+                              padding: const EdgeInsets.symmetric(horizontal: 20),
+                              decoration: BoxDecoration(
+                                color: Colors.red,
+                                borderRadius: BorderRadius.circular(16),
+                              ),
+                              child: const Icon(Icons.delete, color: Colors.white),
+                            ),
+                            confirmDismiss: (direction) async {
+                              return await showDialog<bool>(
+                                context: context,
+                                builder: (context) => AlertDialog(
+                                  title: const Text('일기 삭제'),
+                                  content: const Text('정말로 이 일기를 삭제하시겠습니까?'),
+                                  actions: [
+                                    TextButton(
+                                      onPressed: () => Navigator.pop(context, false),
+                                      child: const Text('취소'),
+                                    ),
+                                    TextButton(
+                                      onPressed: () => Navigator.pop(context, true),
+                                      style: TextButton.styleFrom(foregroundColor: Colors.red),
+                                      child: const Text('삭제'),
+                                    ),
+                                  ],
+                                ),
+                              );
+                            },
+                            onDismissed: (direction) async {
+                              try {
+                                await ref.read(diaryRepositoryProvider).deleteDiary(diary.id);
+                                ref.read(infiniteScrollDiaryListProvider.notifier).removeDiary(diary.id);
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(content: Text('일기가 삭제되었습니다')),
+                                );
+                              } catch (e) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(content: Text('삭제 실패: $e')),
+                                );
+                                ref.read(infiniteScrollDiaryListProvider.notifier).refresh();
+                              }
+                            },
+                            child: DiaryCard(
+                              diary: diary,
+                              onTap: () => context.push('/diary/${diary.id}'),
+                            ),
                           ),
                         );
                       },

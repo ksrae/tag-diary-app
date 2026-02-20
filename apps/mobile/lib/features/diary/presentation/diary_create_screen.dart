@@ -292,7 +292,10 @@ class _DiaryCreateScreenState extends ConsumerState<DiaryCreateScreen> {
         ),
       );
 
-      if (result is String) {
+      if (result == 'retry') {
+        // Loop continues, re-showing input sheet with preserved options
+        continue;
+      } else if (result is String) {
         // Success: result is the generated text
         if (mounted) {
           setState(() {
@@ -303,11 +306,8 @@ class _DiaryCreateScreenState extends ConsumerState<DiaryCreateScreen> {
           await _saveDiary();
         }
         return;
-      } else if (result == 'retry') {
-        // Loop continues, re-showing input sheet with preserved options
-        continue;
       } else {
-        // Cancelled (result is null)
+        // Cancelled (result is null, e.g. when closed on error)
         return;
       }
     }

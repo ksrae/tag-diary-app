@@ -73,17 +73,17 @@ class _DiaryDetailScreenState extends ConsumerState<DiaryDetailScreen> {
     switch (condition?.toLowerCase()) {
       case 'sunny':
       case 'clear':
-        return 'Sunny';
+        return '맑음';
       case 'cloudy':
-        return 'Cloudy';
+        return '흐림';
       case 'rainy':
       case 'rain':
-        return 'Rainy';
+        return '비';
       case 'snowy':
       case 'snow':
-        return 'Snowy';
+        return '눈';
       default:
-        return 'Weather';
+        return '날씨 정보';
     }
   }
 
@@ -277,14 +277,14 @@ class _DiaryDetailScreenState extends ConsumerState<DiaryDetailScreen> {
                               ),
                               // Weekday
                               Text(
-                                DateFormat('EEEE').format(diary.createdAt),
+                                DateFormat('EEEE', 'ko').format(diary.createdAt),
                                 style: theme.textTheme.titleMedium?.copyWith(
                                   fontWeight: FontWeight.w500,
                                 ),
                               ),
                               // Month Year
                               Text(
-                                DateFormat('MMMM yyyy').format(diary.createdAt),
+                                DateFormat('yyyy년 M월', 'ko').format(diary.createdAt),
                                 style: theme.textTheme.bodySmall?.copyWith(
                                   color: theme.colorScheme.outline,
                                 ),
