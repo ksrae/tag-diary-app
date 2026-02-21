@@ -18,10 +18,10 @@ import 'package:mobile/features/ai/application/ai_service.dart';
 import 'package:mobile/features/shared/data/health_repository.dart';
 import 'package:mobile/features/shared/application/weather_service.dart';
 import 'package:mobile/core/services/location_service.dart';
+import 'package:mobile/core/services/firestore_service.dart';
+import 'package:mobile/core/services/auth_service.dart';
 import 'package:photo_manager/photo_manager.dart';
 import 'package:url_launcher/url_launcher.dart';
-import 'package:mobile/features/ai/application/ai_usage_service.dart';
-import 'package:mobile/features/shared/application/ad_service.dart';
 
 /// Single-page diary creation screen
 /// Both Free and Pro: Show all today's photos, allow manual addition
@@ -445,6 +445,13 @@ class _DiaryCreateScreenState extends ConsumerState<DiaryCreateScreen> {
       return;
     }
 
+    // Check storage capacity for paid users (free users have no capacity, just day limit)
+    final plan = ref.read(subscriptionPlanProvider);
+    if (plan != SubscriptionPlan.free) {
+      final canSave = await _checkCapacity();
+      if (!canSave) return;
+    }
+
     setState(() => _isLoading = true);
 
     try {
@@ -507,6 +514,61 @@ class _DiaryCreateScreenState extends ConsumerState<DiaryCreateScreen> {
       if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('저장 실패: $e')));
     } finally {
       if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  /// Check if user has remaining storage capacity.
+  /// Returns true if save can proceed, false if blocked.
+  Future<bool> _checkCapacity() async {
+    try {
+      final authService = ref.read(authServiceProvider);
+      final uid = authService.currentUser?.uid;
+      if (uid == null) return true; // Shouldn't happen, but fail open
+
+      final profile = await ref.read(firestoreServiceProvider).getUserProfile(uid);
+      if (profile == null) return true; // No profile yet, allow
+
+      if (profile.usedBytes >= profile.maxAllowedBytes) {
+        if (mounted) {
+          showDialog(
+            context: context,
+            builder: (context) => AlertDialog(
+              title: const Row(
+                children: [
+                  Icon(Icons.cloud_off, color: Colors.red),
+                  SizedBox(width: 8),
+                  Text('용량 초과'),
+                ],
+              ),
+              content: const Text(
+                '클라우드 용량이 100% 가득 차 일기를 쓸 수 없습니다.\n'
+                '요금제를 바꾸거나 용량을 추가해주세요.',
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: const Text('닫기'),
+                ),
+                FilledButton(
+                  onPressed: () {
+                    Navigator.pop(context);
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) => const PaywallScreen()),
+                    );
+                  },
+                  child: const Text('용량 추가/업그레이드'),
+                ),
+              ],
+            ),
+          );
+        }
+        return false;
+      }
+      return true;
+    } catch (_) {
+      // Fail open — don't block user if we can't check
+      return true;
     }
   }
 

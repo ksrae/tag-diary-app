@@ -10,6 +10,9 @@ import 'package:mobile/features/diary/presentation/widgets/memory_banner.dart';
 import 'package:mobile/features/diary/presentation/widgets/diary_calendar.dart';
 import 'package:flutter_slidable/flutter_slidable.dart';
 import 'package:mobile/features/premium/application/purchase_provider.dart';
+import 'package:mobile/features/premium/presentation/paywall_screen.dart';
+import 'package:mobile/core/services/firestore_service.dart';
+import 'package:mobile/core/services/auth_service.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'dart:io';
 
@@ -292,9 +295,15 @@ class _DiaryFeedScreenState extends ConsumerState<DiaryFeedScreen> {
                         if (index >= filteredDiaries.length) return null;
                         
                         final diary = filteredDiaries[index];
+                        final plan = ref.watch(subscriptionPlanProvider);
+                        final daysDiff = DateTime.now().difference(diary.createdAt).inDays;
+                        final isLocked = plan == SubscriptionPlan.free && daysDiff >= 4;
+                        
                         return Padding(
                           padding: const EdgeInsets.only(bottom: 12),
-                          child: Slidable(
+                          child: isLocked
+                              ? _buildLockedDiaryCard(context, diary, daysDiff)
+                              : Slidable(
                             key: ValueKey(diary.id),
                             endActionPane: ActionPane(
                               motion: const ScrollMotion(),
@@ -446,5 +455,84 @@ class _DiaryFeedScreenState extends ConsumerState<DiaryFeedScreen> {
 
   bool _isSameDay(DateTime a, DateTime b) {
     return a.year == b.year && a.month == b.month && a.day == b.day;
+  }
+
+  Widget _buildLockedDiaryCard(BuildContext context, Diary diary, int daysDiff) {
+    final theme = Theme.of(context);
+    return GestureDetector(
+      onTap: () => _showUpgradeModal(context),
+      child: Opacity(
+        opacity: 0.6,
+        child: Stack(
+          children: [
+            DiaryCard(diary: diary),
+            Positioned.fill(
+              child: Container(
+                decoration: BoxDecoration(
+                  color: Colors.black.withOpacity(0.15),
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                child: Center(
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: Colors.black.withOpacity(0.6),
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: const Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(Icons.lock, size: 16, color: Colors.white),
+                        SizedBox(width: 6),
+                        Text(
+                          '잠긴 일기',
+                          style: TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showUpgradeModal(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Row(
+          children: [
+            Icon(Icons.lock, color: Colors.orange),
+            SizedBox(width: 8),
+            Text('이전 일기 잠김'),
+          ],
+        ),
+        content: const Text(
+          '이전 일기를 보려면 Basic 플랜 이상이 필요합니다.\n\n'
+          '7일이 지난 일기는 서버에서 영구 삭제됩니다.\n'
+          '안전하게 평생 보관하려면 지금 업그레이드하세요.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('닫기'),
+          ),
+          FilledButton(
+            onPressed: () {
+              Navigator.pop(context);
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const PaywallScreen()),
+              );
+            },
+            child: const Text('업그레이드'),
+          ),
+        ],
+      ),
+    );
   }
 }

@@ -2,13 +2,11 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:mobile/core/services/location_service.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:share_plus/share_plus.dart';
-import 'package:file_picker/file_picker.dart';
-import 'package:path_provider/path_provider.dart';
 import 'package:intl/intl.dart';
 import 'package:mobile/features/premium/presentation/paywall_screen.dart';
 import 'package:mobile/features/premium/application/purchase_provider.dart';
-import 'package:mobile/features/diary/data/diary_repository.dart';
+import 'package:mobile/core/services/firestore_service.dart';
+import 'package:mobile/core/services/auth_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:mobile/features/lock/application/lock_service.dart';
 import 'package:go_router/go_router.dart';
@@ -319,21 +317,9 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           ),
           const Divider(),
 
-          // Data Management section
-          _buildSectionHeader(context, '데이터 관리'),
-          ListTile(
-            leading: const Icon(Icons.upload_file),
-            title: const Text('전체 일기 백업'),
-            subtitle: const Text('현재까지의 모든 일기를 파일로 저장합니다'),
-            onTap: () => _exportData(context, ref),
-          ),
-          ListTile(
-            leading: const Icon(Icons.file_download),
-            title: const Text('일기 복원하기'),
-            subtitle: const Text('백업 파일에서 일기를 불러옵니다'),
-            onTap: () => _importData(context, ref),
-          ),
-          
+          // Cloud Storage section
+          _buildSectionHeader(context, '클라우드 저장소'),
+          _buildCloudStorageSection(context),
           const Divider(),
 
           // Info section
@@ -427,61 +413,169 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     );
   }
 
-  Future<void> _exportData(BuildContext context, WidgetRef ref) async {
-    try {
-      final repository = ref.read(diaryRepositoryProvider);
-      final jsonString = await repository.exportData();
-      
-      final now = DateTime.now();
-      final formattedDate = DateFormat('yyyyMMdd_HHmmss').format(now);
-      final fileName = 'diary_backup_$formattedDate.json';
-      
-      final directory = await getTemporaryDirectory();
-      final file = File('${directory.path}/$fileName');
-      await file.writeAsString(jsonString);
-      
-      await file.writeAsString(jsonString);
-      
-      await Share.shareXFiles(
-        [XFile(file.path)],
-        text: 'AI 일기 백업 ($formattedDate)',
-      );
-    } catch (e) {
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('데이터 내보내기 실패: $e')),
-        );
-      }
-    }
-  }
+  Widget _buildCloudStorageSection(BuildContext context) {
+    final authService = ref.watch(authServiceProvider);
+    final uid = authService.currentUser?.uid;
+    final plan = ref.watch(subscriptionPlanProvider);
 
-  Future<void> _importData(BuildContext context, WidgetRef ref) async {
-    try {
-      final result = await FilePicker.platform.pickFiles(
-        type: FileType.custom,
-        allowedExtensions: ['json'],
+    if (uid == null) {
+      return const ListTile(
+        leading: Icon(Icons.cloud_off),
+        title: Text('로그인이 필요합니다'),
+        subtitle: Text('클라우드 저장소를 사용하려면 로그인하세요'),
       );
-      
-      if (result != null && result.files.single.path != null) {
-        final file = File(result.files.single.path!);
-        final jsonString = await file.readAsString();
-        
-        final repository = ref.read(diaryRepositoryProvider);
-        final count = await repository.importData(jsonString);
-        
-        if (context.mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('$count개의 일기 복원 완료')),
+    }
+
+    if (plan == SubscriptionPlan.free) {
+      return Column(
+        children: [
+          ListTile(
+            leading: const Icon(Icons.cloud_outlined, color: Colors.grey),
+            title: const Text('무료 플랜'),
+            subtitle: const Text('최근 3일 일기만 저장 가능합니다'),
+          ),
+          Container(
+            margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: Colors.orange.shade50,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: Colors.orange.shade200),
+            ),
+            child: Row(
+              children: [
+                Icon(Icons.warning_amber_rounded, color: Colors.orange.shade700, size: 20),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    '7일이 지난 일기는 서버에서 영구 삭제됩니다.\n안전하게 평생 보관하려면 지금 업그레이드하세요.',
+                    style: TextStyle(fontSize: 12, color: Colors.orange.shade900, height: 1.4),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+            child: SizedBox(
+              width: double.infinity,
+              child: FilledButton(
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => const PaywallScreen()),
+                  );
+                },
+                child: const Text('업그레이드하기'),
+              ),
+            ),
+          ),
+        ],
+      );
+    }
+
+    // Paid user: show capacity info
+    final profileStream = ref.watch(userProfileStreamProvider(uid));
+
+    return profileStream.when(
+      data: (profile) {
+        if (profile == null) {
+          return const ListTile(
+            leading: Icon(Icons.cloud_outlined),
+            title: Text('프로필 로딩 중...'),
           );
         }
-      }
-    } catch (e) {
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('데이터 불러오기 실패: $e')),
+
+        final usedBytes = profile.usedBytes;
+        final maxBytes = profile.maxAllowedBytes;
+        final usedMB = usedBytes / (1024 * 1024);
+        final maxGB = maxBytes / (1024 * 1024 * 1024);
+        final progress = maxBytes > 0 ? (usedBytes / maxBytes).clamp(0.0, 1.0) : 0.0;
+
+        String usedText;
+        if (usedMB < 1024) {
+          usedText = '${usedMB.toStringAsFixed(1)} MB';
+        } else {
+          usedText = '${(usedMB / 1024).toStringAsFixed(2)} GB';
+        }
+
+        final planName = plan == SubscriptionPlan.pro ? 'Pro' : 'Basic';
+
+        return Column(
+          children: [
+            ListTile(
+              leading: Icon(
+                Icons.cloud_done,
+                color: progress > 0.9 ? Colors.red : Colors.blue,
+              ),
+              title: Text('$planName 플랜'),
+              subtitle: Text('$usedText / ${maxGB.toStringAsFixed(0)} GB 사용 중'),
+            ),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: Column(
+                children: [
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(8),
+                    child: LinearProgressIndicator(
+                      value: progress,
+                      minHeight: 8,
+                      backgroundColor: Colors.grey.shade200,
+                      valueColor: AlwaysStoppedAnimation(
+                        progress > 0.9 ? Colors.red : Colors.blue,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  if (progress > 0.9)
+                    Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: Colors.red.shade50,
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Row(
+                        children: [
+                          Icon(Icons.warning, size: 16, color: Colors.red.shade700),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              '용량이 거의 가득 찼습니다. 요금제를 업그레이드하거나 용량을 추가하세요.',
+                              style: TextStyle(fontSize: 12, color: Colors.red.shade700),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  const SizedBox(height: 8),
+                  SizedBox(
+                    width: double.infinity,
+                    child: OutlinedButton.icon(
+                      onPressed: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (context) => const PaywallScreen()),
+                        );
+                      },
+                      icon: const Icon(Icons.add, size: 18),
+                      label: const Text('용량 추가 (1GB / \$0.99)'),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
         );
-      }
-    }
+      },
+      loading: () => const ListTile(
+        leading: CircularProgressIndicator(),
+        title: Text('용량 정보 로딩 중...'),
+      ),
+      error: (_, __) => const ListTile(
+        leading: Icon(Icons.error_outline, color: Colors.red),
+        title: Text('용량 정보를 불러올 수 없습니다'),
+      ),
+    );
   }
 
   Future<void> _togglePermission(

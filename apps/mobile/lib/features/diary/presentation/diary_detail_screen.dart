@@ -13,6 +13,8 @@ import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:mobile/features/premium/application/purchase_provider.dart';
+import 'package:mobile/features/premium/presentation/paywall_screen.dart';
+import 'package:mobile/core/services/firestore_service.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 
 /// Diary detail screen with edit and delete options
@@ -186,6 +188,13 @@ class _DiaryDetailScreenState extends ConsumerState<DiaryDetailScreen> {
       backgroundColor: theme.scaffoldBackgroundColor,
       body: diaryAsync.when(
         data: (diary) {
+          // Access control: Free users cannot view diaries older than 3 days
+          final plan = ref.watch(subscriptionPlanProvider);
+          final daysDiff = DateTime.now().difference(diary.createdAt).inDays;
+          if (plan == SubscriptionPlan.free && daysDiff >= 4) {
+            return _buildLockedScreen(context, theme);
+          }
+
           final tags = diary.sources
               .where((s) => s.type == 'tag')
               .map((s) => s.contentPreview)
@@ -751,6 +760,47 @@ class _DiaryDetailScreenState extends ConsumerState<DiaryDetailScreen> {
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildLockedScreen(BuildContext context, ThemeData theme) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(32),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.lock_outline, size: 80, color: theme.colorScheme.outline),
+            const SizedBox(height: 24),
+            Text(
+              '잠긴 일기',
+              style: theme.textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 12),
+            Text(
+              '무료 플랜에서는 최근 3일간의 일기만 열람할 수 있습니다.\n이전 일기를 보려면 Basic 이상 플랜이 필요합니다.',
+              textAlign: TextAlign.center,
+              style: theme.textTheme.bodyMedium?.copyWith(color: theme.colorScheme.outline),
+            ),
+            const SizedBox(height: 24),
+            FilledButton.icon(
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const PaywallScreen()),
+                );
+              },
+              icon: const Icon(Icons.workspace_premium),
+              label: const Text('업그레이드'),
+            ),
+            const SizedBox(height: 12),
+            TextButton(
+              onPressed: () => context.pop(),
+              child: const Text('뒤로가기'),
+            ),
+          ],
+        ),
       ),
     );
   }

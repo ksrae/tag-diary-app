@@ -1,112 +1,38 @@
-
-import 'dart:convert';
-import 'dart:io';
-import 'dart:typed_data';
-
-import 'package:encrypt/encrypt.dart' as encrypt;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter_secure_storage/flutter_secure_storage.dart';
-import 'package:path_provider/path_provider.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
-import 'package:uuid/uuid.dart';
 
+import 'package:mobile/core/services/firestore_service.dart';
+import 'package:mobile/core/services/cloud_storage_service.dart';
+import 'package:mobile/core/services/auth_service.dart';
 import 'package:mobile/features/diary/data/models/diary.dart';
 
 part 'diary_repository.g.dart';
 
-/// Repository for diary operations (Encrypted Local File Storage)
+/// Repository for diary operations (Firestore + Cloud Storage)
 class DiaryRepository {
-  DiaryRepository();
+  final FirestoreService _firestoreService;
+  final CloudStorageService _cloudStorageService;
+  final String _uid;
 
-  bool _isInitialized = false;
-  late final Directory _diaryDir;
-  late final encrypt.Encrypter _encrypter;
+  DiaryRepository({
+    required FirestoreService firestoreService,
+    required CloudStorageService cloudStorageService,
+    required String uid,
+  })  : _firestoreService = firestoreService,
+        _cloudStorageService = cloudStorageService,
+        _uid = uid;
 
-  // Key for SecureStorage - distinct from Hive key to correctly start fresh or migrate
-  static const _keyStorageName = 'diary_file_aescbc_key';
-
-  Future<void> _init() async {
-    if (_isInitialized) return;
-
-    // 1. Setup Directory
-    final docsDir = await getApplicationDocumentsDirectory();
-    _diaryDir = Directory('${docsDir.path}/diaries');
-    if (!await _diaryDir.exists()) {
-      await _diaryDir.create(recursive: true);
-    }
-
-    // 2. Setup Encryption Key
-    const secureStorage = FlutterSecureStorage();
-    String? keyString = await secureStorage.read(key: _keyStorageName);
-    
-    // We need a 32-byte key for AES-256
-    List<int> keyBytes;
-    if (keyString == null) {
-      final key = encrypt.Key.fromSecureRandom(32);
-      keyBytes = key.bytes;
-      await secureStorage.write(
-        key: _keyStorageName,
-        value: base64UrlEncode(keyBytes),
-      );
-    } else {
-      keyBytes = base64Url.decode(keyString);
-    }
-
-    final key = encrypt.Key(Uint8List.fromList(keyBytes));
-    _encrypter = encrypt.Encrypter(encrypt.AES(key));
-    _isInitialized = true;
+  /// Stream all diaries (real-time updates from Firestore)
+  Stream<List<Diary>> streamDiaries() {
+    return _firestoreService.streamDiaries(_uid).map((maps) {
+      return maps.map((map) => _diaryFromMap(map)).toList();
+    });
   }
 
-  encrypt.IV _generateIV() => encrypt.IV.fromSecureRandom(16);
-
-  String _encryptData(String plainText) {
-    final iv = _generateIV();
-    final encrypted = _encrypter.encrypt(plainText, iv: iv);
-    return '${iv.base64}:${encrypted.base64}';
-  }
-
-  String _decryptData(String encryptedString) {
-    final parts = encryptedString.split(':');
-    if (parts.length != 2) throw Exception('Invalid encrypted format');
-    
-    final iv = encrypt.IV.fromBase64(parts[0]);
-    final encrypted = encrypt.Encrypted.fromBase64(parts[1]);
-    
-    return _encrypter.decrypt(encrypted, iv: iv);
-  }
-
-  Future<void> _saveDiaryToFile(Diary diary) async {
-    final jsonString = jsonEncode(diary.toJson());
-    final encryptedString = _encryptData(jsonString);
-    
-    final file = File('${_diaryDir.path}/${diary.id}.enc');
-    await file.writeAsString(encryptedString, flush: true);
-  }
-
-  Future<List<Diary>> _getAllDiaries() async {
-    final List<Diary> entries = [];
-    final List<FileSystemEntity> files = _diaryDir.listSync();
-    
-    for (final file in files) {
-      if (file is File && file.path.endsWith('.enc')) {
-        try {
-          final setContent = await file.readAsString();
-          final jsonString = _decryptData(setContent);
-          final entry = Diary.fromJson(jsonDecode(jsonString));
-          entries.add(entry);
-        } catch (e) {
-          print('Error reading/decrypting file ${file.path}: $e');
-        }
-      }
-    }
-    // Sort newest first by default
-    entries.sort((a, b) => b.createdAt.compareTo(a.createdAt));
-    return entries;
-  }
-
+  /// Get all diaries (one-time fetch)
   Future<List<Diary>> getAllDiaries() async {
-    await _init();
-    return _getAllDiaries();
+    final maps = await _firestoreService.streamDiaries(_uid).first;
+    return maps.map((map) => _diaryFromMap(map)).toList();
   }
 
   Future<List<Diary>> getDiaries({
@@ -114,20 +40,18 @@ class DiaryRepository {
     DateTime? startDate,
     DateTime? endDate,
   }) async {
-    await _init();
-    
-    var entries = await _getAllDiaries();
-    
+    var entries = await getAllDiaries();
+
     if (startDate != null) {
       final start = DateTime(startDate.year, startDate.month, startDate.day);
       entries = entries.where((d) => d.createdAt.compareTo(start) >= 0).toList();
     }
-    
+
     if (endDate != null) {
       final end = DateTime(endDate.year, endDate.month, endDate.day, 23, 59, 59, 999);
       entries = entries.where((d) => d.createdAt.compareTo(end) <= 0).toList();
     }
-    
+
     return entries;
   }
 
@@ -136,50 +60,71 @@ class DiaryRepository {
     required int limit,
     bool loadOlder = true,
   }) async {
-    await _init();
-    
-    var entries = await _getAllDiaries();
-    
+    var entries = await getAllDiaries();
+
     if (loadOlder) {
-      // Get entries older than or equal to fromDate
       final from = DateTime(fromDate.year, fromDate.month, fromDate.day, 23, 59, 59, 999);
       entries = entries.where((d) => d.createdAt.compareTo(from) <= 0).toList();
-      // entries are already sorted newest first
     } else {
-      // Get entries newer than fromDate
       final from = DateTime(fromDate.year, fromDate.month, fromDate.day);
       entries = entries.where((d) => d.createdAt.compareTo(from) > 0).toList();
-      // Sort oldest first for "fetching newer", then we take 'limit', then reverse back
       entries.sort((a, b) => a.createdAt.compareTo(b.createdAt));
     }
-    
+
     final result = entries.take(limit).toList();
-    
+
     if (!loadOlder) {
       result.sort((a, b) => b.createdAt.compareTo(a.createdAt));
     }
-    
+
     return result;
   }
 
   Future<List<DateTime>> getDatesWithEntries() async {
-    await _init();
-    final diaries = await _getAllDiaries(); // Optimization: could just parse headers if separate
-    final dates = diaries.map((e) {
-      return DateTime(e.createdAt.year, e.createdAt.month, e.createdAt.day);
-    }).toSet().toList();
+    final diaries = await getAllDiaries();
+    final dates = diaries
+        .map((e) => DateTime(e.createdAt.year, e.createdAt.month, e.createdAt.day))
+        .toSet()
+        .toList();
     return dates;
   }
 
   Future<Diary> getDiary(String id) async {
-    await _init();
-    final file = File('${_diaryDir.path}/$id.enc');
-    if (!await file.exists()) {
-      throw Exception('Diary not found');
+    final diaries = await getAllDiaries();
+    return diaries.firstWhere(
+      (d) => d.id == id,
+      orElse: () => throw Exception('Diary not found'),
+    );
+  }
+
+  /// Upload images to Cloud Storage and return download URLs + total bytes
+  Future<(List<String>, int)> _uploadImages({
+    required String diaryId,
+    required List<String> localPaths,
+  }) async {
+    final List<String> urls = [];
+    int totalBytes = 0;
+
+    for (final path in localPaths) {
+      if (path.startsWith('http://') || path.startsWith('https://')) {
+        // Already a cloud URL, keep as-is
+        urls.add(path);
+        continue;
+      }
+
+      final result = await _cloudStorageService.compressAndUploadImage(
+        uid: _uid,
+        imagePath: path,
+        diaryId: diaryId,
+      );
+
+      if (result != null) {
+        urls.add(result.$1);
+        totalBytes += result.$2;
+      }
     }
-    final setContent = await file.readAsString();
-    final jsonString = _decryptData(setContent);
-    return Diary.fromJson(jsonDecode(jsonString));
+
+    return (urls, totalBytes);
   }
 
   Future<Diary> createDiary({
@@ -191,27 +136,41 @@ class DiaryRepository {
     List<String>? photos,
     bool isAiGenerated = false,
   }) async {
-    await _init();
-    
     final now = DateTime.now();
-    final id = const Uuid().v4();
-    
-    final newDiary = Diary(
+    final id = '${now.millisecondsSinceEpoch}';
+
+    // Upload images to Cloud Storage
+    List<String> photoUrls = [];
+    int uploadedBytes = 0;
+    if (photos != null && photos.isNotEmpty) {
+      final (urls, bytes) = await _uploadImages(diaryId: id, localPaths: photos);
+      photoUrls = urls;
+      uploadedBytes = bytes;
+    }
+
+    final diary = Diary(
       id: id,
-      userId: userId,
+      userId: _uid,
       content: content,
       mood: mood,
       weather: weather,
       sources: sources ?? [],
-      photos: photos ?? [],
+      photos: photoUrls,
       isAiGenerated: isAiGenerated,
       createdAt: now,
       updatedAt: now,
       editCount: 0,
     );
 
-    await _saveDiaryToFile(newDiary);
-    return newDiary;
+    // Save to Firestore
+    await _firestoreService.saveDiary(_uid, id, diary.toJson());
+
+    // Update used bytes
+    if (uploadedBytes > 0) {
+      await _firestoreService.incrementUsedBytes(_uid, uploadedBytes);
+    }
+
+    return diary;
   }
 
   Future<Diary> updateDiary({
@@ -224,47 +183,56 @@ class DiaryRepository {
     bool? isAiGenerated,
     bool incrementEditCount = false,
   }) async {
-    await _init();
-    
-    // Get existing to modify
     final existingDiary = await getDiary(id);
-    
+
+    // Upload new local images
+    List<String> photoUrls = existingDiary.photos;
+    int uploadedBytes = 0;
+    if (photos != null) {
+      final (urls, bytes) = await _uploadImages(diaryId: id, localPaths: photos);
+      photoUrls = urls;
+      uploadedBytes = bytes;
+    }
+
     final updatedDiary = existingDiary.copyWith(
       content: content ?? existingDiary.content,
       mood: mood ?? existingDiary.mood,
       weather: weather ?? existingDiary.weather,
       sources: sources ?? existingDiary.sources,
-      photos: photos ?? existingDiary.photos,
+      photos: photoUrls,
       isAiGenerated: isAiGenerated ?? existingDiary.isAiGenerated,
       updatedAt: DateTime.now(),
       editCount: incrementEditCount ? existingDiary.editCount + 1 : existingDiary.editCount,
     );
 
-    await _saveDiaryToFile(updatedDiary);
+    await _firestoreService.saveDiary(_uid, id, updatedDiary.toJson());
+
+    if (uploadedBytes > 0) {
+      await _firestoreService.incrementUsedBytes(_uid, uploadedBytes);
+    }
+
     return updatedDiary;
   }
 
   Future<void> deleteDiary(String id) async {
-    await _init();
-    final file = File('${_diaryDir.path}/$id.enc');
-    if (await file.exists()) {
-      await file.delete();
-    }
+    // Delete images from Storage
+    await _cloudStorageService.deleteDiaryImages(_uid, id);
+    // Delete diary from Firestore
+    await _firestoreService.deleteDiary(_uid, id);
   }
 
   Future<Diary?> getYearAgoMemory(String userId) async {
-    await _init();
     final now = DateTime.now();
     final oneYearAgo = DateTime(now.year - 1, now.month, now.day);
-    
-    final diaries = await _getAllDiaries();
+
+    final diaries = await getAllDiaries();
     try {
       return diaries.firstWhere(
         (diary) {
           final d = diary.createdAt;
-          return d.year == oneYearAgo.year && 
-                 d.month == oneYearAgo.month && 
-                 d.day == oneYearAgo.day;
+          return d.year == oneYearAgo.year &&
+              d.month == oneYearAgo.month &&
+              d.day == oneYearAgo.day;
         },
       );
     } catch (_) {
@@ -272,43 +240,59 @@ class DiaryRepository {
     }
   }
 
-  Future<String> exportData() async {
-    await _init();
-    final allDiaries = await _getAllDiaries();
-    final List<Map<String, dynamic>> jsonList = 
-        allDiaries.map((d) => d.toJson()).toList();
-    return jsonEncode(jsonList);
-  }
-
-  Future<int> importData(String jsonString) async {
-    await _init();
-    final List<dynamic> jsonList = jsonDecode(jsonString);
-    var count = 0;
-
-    for (final json in jsonList) {
-      try {
-        if (json is Map<String, dynamic>) {
-          final diary = Diary.fromJson(json);
-          await _saveDiaryToFile(diary); // Upsert
-          count++;
-        }
-      } catch (e) {
-        print('Error importing entry: $e');
-      }
+  /// Convert Firestore map to Diary model
+  Diary _diaryFromMap(Map<String, dynamic> map) {
+    // Handle Timestamp fields
+    DateTime createdAt;
+    if (map['createdAt'] is DateTime) {
+      createdAt = map['createdAt'] as DateTime;
+    } else if (map['createdAt'] != null) {
+      // Firestore Timestamp
+      createdAt = (map['createdAt'] as dynamic).toDate();
+    } else {
+      createdAt = DateTime.now();
     }
-    return count;
-  }
 
-  Future<void> clearAllData() async {
-    await _init();
-    if (await _diaryDir.exists()) {
-      await _diaryDir.delete(recursive: true);
-      await _diaryDir.create();
+    DateTime? updatedAt;
+    if (map['updatedAt'] is DateTime) {
+      updatedAt = map['updatedAt'] as DateTime;
+    } else if (map['updatedAt'] != null) {
+      updatedAt = (map['updatedAt'] as dynamic).toDate();
     }
+
+    return Diary(
+      id: map['id'] as String? ?? '',
+      userId: map['userId'] as String? ?? _uid,
+      content: map['content'] as String? ?? '',
+      mood: map['mood'] as String?,
+      weather: map['weather'] != null
+          ? Weather.fromJson(Map<String, dynamic>.from(map['weather'] as Map))
+          : null,
+      sources: (map['sources'] as List<dynamic>?)
+              ?.map((s) => DiarySource.fromJson(Map<String, dynamic>.from(s as Map)))
+              .toList() ??
+          [],
+      photos: (map['photos'] as List<dynamic>?)?.map((p) => p.toString()).toList() ?? [],
+      isAiGenerated: map['isAiGenerated'] as bool? ?? false,
+      editCount: map['editCount'] as int? ?? 0,
+      createdAt: createdAt,
+      updatedAt: updatedAt,
+    );
   }
 }
 
 @riverpod
 DiaryRepository diaryRepository(Ref ref) {
-  return DiaryRepository();
+  final authService = ref.watch(authServiceProvider);
+  final uid = authService.currentUser?.uid;
+
+  if (uid == null) {
+    throw Exception('User not authenticated');
+  }
+
+  return DiaryRepository(
+    firestoreService: ref.watch(firestoreServiceProvider),
+    cloudStorageService: ref.watch(cloudStorageServiceProvider),
+    uid: uid,
+  );
 }

@@ -67,6 +67,13 @@ class FirestoreService {
     });
   }
 
+  /// One-shot fetch of user profile (for capacity checks)
+  Future<UserProfile?> getUserProfile(String uid) async {
+    final snap = await _db.collection('users').doc(uid).get();
+    if (!snap.exists || snap.data() == null) return null;
+    return UserProfile.fromMap(snap.data()!);
+  }
+
   Future<void> createUserProfileIfNone(String uid) async {
     final doc = await _db.collection('users').doc(uid).get();
     if (!doc.exists) {

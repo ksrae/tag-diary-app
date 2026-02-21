@@ -6,7 +6,7 @@ part of 'diary_repository.dart';
 // RiverpodGenerator
 // **************************************************************************
 
-String _$diaryRepositoryHash() => r'33e558617f10efb2fba4f10a3fd279fa65f2af3a';
+String _$diaryRepositoryHash() => r'af702059cf6f6970ddb81b3174eede963eb52580';
 
 /// See also [diaryRepository].
 @ProviderFor(diaryRepository)
