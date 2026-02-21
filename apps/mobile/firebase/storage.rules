@@ -1,0 +1,17 @@
+rules_version = '2';
+
+service firebase.storage {
+  match /b/{bucket}/o {
+    // 공통 함수: 본인 폴더 접근 확인
+    function isOwner(uid) {
+        return request.auth != null && request.auth.uid == uid;
+    }
+
+    match /users/{userId} {
+      match /{allPaths=**} {
+        // 이미지는 자신의 uid 폴더 내에만 읽기 및 쓰기 허용
+        allow read, write: if isOwner(userId);
+      }
+    }
+  }
+}

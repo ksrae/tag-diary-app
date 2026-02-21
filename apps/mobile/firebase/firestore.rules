@@ -1,0 +1,30 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // 공통 함수: 로그인 여부 확인
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    // 공통 함수: 본인 데이터인지 확인
+    function isOwner(uid) {
+      return isAuthenticated() && request.auth.uid == uid;
+    }
+
+    // 유저 프로필 컬렉션
+    match /users/{userId} {
+      // 본인의 프로필만 읽고 쓸 수 있음
+      allow read: if isOwner(userId);
+      // 프로필 생성(가입)과 용량 변경(사용한 바이트 증감) 허용
+      allow create, update: if isOwner(userId);
+      // 프로필 삭제 금지 (필요시 백엔드에서 처리)
+      allow delete: if false;
+
+      // 유저의 일기 컬렉션
+      match /diaries/{diaryId} {
+        // 본인의 일기만 생성, 읽기, 수정, 삭제 가능
+        allow read, write: if isOwner(userId);
+      }
+    }
+  }
+}

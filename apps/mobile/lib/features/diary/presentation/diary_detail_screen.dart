@@ -12,6 +12,8 @@ import 'package:mobile/features/diary/presentation/widgets/diary_gallery_screen.
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:mobile/features/premium/application/purchase_provider.dart';
+import 'package:google_mobile_ads/google_mobile_ads.dart';
 
 /// Diary detail screen with edit and delete options
 class DiaryDetailScreen extends ConsumerStatefulWidget {
@@ -25,9 +27,42 @@ class DiaryDetailScreen extends ConsumerStatefulWidget {
 
 class _DiaryDetailScreenState extends ConsumerState<DiaryDetailScreen> {
   bool _tagsExpanded = false;
+  BannerAd? _bannerAd;
+  bool _isBannerAdLoaded = false;
   
   @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!ref.read(isProProvider)) {
+        _loadBannerAd();
+      }
+    });
+  }
+
+  void _loadBannerAd() {
+    _bannerAd = BannerAd(
+      adUnitId: Platform.isAndroid 
+          ? 'ca-app-pub-3940256099942544/6300978111' 
+          : 'ca-app-pub-3940256099942544/2934735716',
+      size: AdSize.banner,
+      request: const AdRequest(),
+      listener: BannerAdListener(
+        onAdLoaded: (_) {
+          if (mounted) setState(() => _isBannerAdLoaded = true);
+        },
+        onAdFailedToLoad: (ad, error) {
+          ad.dispose();
+          _bannerAd = null;
+        },
+      ),
+    );
+    _bannerAd!.load();
+  }
+
+  @override
   void dispose() {
+    _bannerAd?.dispose();
     super.dispose();
   }
 
@@ -183,7 +218,7 @@ class _DiaryDetailScreenState extends ConsumerState<DiaryDetailScreen> {
                         },
                       )
                     else
-                      const SizedBox(height: 60), // Spacing if no images
+                      SizedBox(height: MediaQuery.of(context).padding.top + 64), // Spacing if no images
 
                     // Menu button overlay
                     Positioned(
@@ -558,6 +593,15 @@ class _DiaryDetailScreenState extends ConsumerState<DiaryDetailScreen> {
           ),
         ),
       ),
+      bottomNavigationBar: _isBannerAdLoaded && _bannerAd != null
+          ? SafeArea(
+              child: SizedBox(
+                width: _bannerAd!.size.width.toDouble(),
+                height: _bannerAd!.size.height.toDouble(),
+                child: AdWidget(ad: _bannerAd!),
+              ),
+            )
+          : null,
       floatingActionButton: FloatingActionButton(
         onPressed: () {
           diaryAsync.whenData((diary) {

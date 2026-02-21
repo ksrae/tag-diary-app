@@ -1,4 +1,4 @@
-package com.example.mobile
+package com.izi.tagdiary
 
 import io.flutter.embedding.android.FlutterActivity
 

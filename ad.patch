@@ -1,0 +1,966 @@
+diff --git a/apps/mobile/android/app/src/main/AndroidManifest.xml b/apps/mobile/android/app/src/main/AndroidManifest.xml
+index b8609e0..ade339c 100644
+--- a/apps/mobile/android/app/src/main/AndroidManifest.xml
++++ b/apps/mobile/android/app/src/main/AndroidManifest.xml
+@@ -26,6 +26,10 @@
+         android:label="Tag Diary"
+         android:name="${applicationName}"
+         android:icon="@mipmap/launcher_icon">
++        <!-- Google Mobile Ads App ID (Test ID) -->
++        <meta-data
++            android:name="com.google.android.gms.ads.APPLICATION_ID"
++            android:value="ca-app-pub-3940256099942544~3347511713"/>
+         <activity
+             android:name=".MainActivity"
+             android:exported="true"
+diff --git a/apps/mobile/ios/Runner/GeneratedPluginRegistrant.m b/apps/mobile/ios/Runner/GeneratedPluginRegistrant.m
+index c05a4c0..18a5545 100644
+--- a/apps/mobile/ios/Runner/GeneratedPluginRegistrant.m
++++ b/apps/mobile/ios/Runner/GeneratedPluginRegistrant.m
+@@ -72,6 +72,12 @@
+ @import geolocator_apple;
+ #endif
+ 
++#if __has_include(<google_mobile_ads/FLTGoogleMobileAdsPlugin.h>)
++#import <google_mobile_ads/FLTGoogleMobileAdsPlugin.h>
++#else
++@import google_mobile_ads;
++#endif
++
+ #if __has_include(<health/HealthPlugin.h>)
+ #import <health/HealthPlugin.h>
+ #else
+@@ -138,6 +144,12 @@
+ @import url_launcher_ios;
+ #endif
+ 
++#if __has_include(<webview_flutter_wkwebview/FLTWebViewFlutterPlugin.h>)
++#import <webview_flutter_wkwebview/FLTWebViewFlutterPlugin.h>
++#else
++@import webview_flutter_wkwebview;
++#endif
++
+ @implementation GeneratedPluginRegistrant
+ 
+ + (void)registerWithRegistry:(NSObject<FlutterPluginRegistry>*)registry {
+@@ -152,6 +164,7 @@ + (void)registerWithRegistry:(NSObject<FlutterPluginRegistry>*)registry {
+   [FlutterTimezonePlugin registerWithRegistrar:[registry registrarForPlugin:@"FlutterTimezonePlugin"]];
+   [GeocodingPlugin registerWithRegistrar:[registry registrarForPlugin:@"GeocodingPlugin"]];
+   [GeolocatorPlugin registerWithRegistrar:[registry registrarForPlugin:@"GeolocatorPlugin"]];
++  [FLTGoogleMobileAdsPlugin registerWithRegistrar:[registry registrarForPlugin:@"FLTGoogleMobileAdsPlugin"]];
+   [HealthPlugin registerWithRegistrar:[registry registrarForPlugin:@"HealthPlugin"]];
+   [FLTImagePickerPlugin registerWithRegistrar:[registry registrarForPlugin:@"FLTImagePickerPlugin"]];
+   [FLALocalAuthPlugin registerWithRegistrar:[registry registrarForPlugin:@"FLALocalAuthPlugin"]];
+@@ -163,6 +176,7 @@ + (void)registerWithRegistry:(NSObject<FlutterPluginRegistry>*)registry {
+   [FPPSharePlusPlugin registerWithRegistrar:[registry registrarForPlugin:@"FPPSharePlusPlugin"]];
+   [SharedPreferencesPlugin registerWithRegistrar:[registry registrarForPlugin:@"SharedPreferencesPlugin"]];
+   [URLLauncherPlugin registerWithRegistrar:[registry registrarForPlugin:@"URLLauncherPlugin"]];
++  [FLTWebViewFlutterPlugin registerWithRegistrar:[registry registrarForPlugin:@"FLTWebViewFlutterPlugin"]];
+ }
+ 
+ @end
+diff --git a/apps/mobile/lib/core/services/notification_service.dart b/apps/mobile/lib/core/services/notification_service.dart
+index 0a3941e..acc7df0 100644
+--- a/apps/mobile/lib/core/services/notification_service.dart
++++ b/apps/mobile/lib/core/services/notification_service.dart
+@@ -196,4 +196,16 @@ class NotificationService {
+     // Mood values from enum: happy, sad, peaceful, angry, tired, loved
+     return ['sad', 'angry', 'tired'].contains(mood);
+   }
++
++  Future<void> scheduleTestNotification() async {
++    final now = DateTime.now();
++    final scheduleDate = now.add(const Duration(seconds: 5));
++    
++    await _scheduleNotification(
++      id: 9999,
++      title: '테스트 알림 완료!',
++      body: '정상적으로 알림이 설정되었습니다. (이 알림은 설정 저장 5초 후 나타납니다)',
++      date: scheduleDate,
++    );
++  }
+ }
+diff --git a/apps/mobile/lib/features/ai/application/ai_usage_service.dart b/apps/mobile/lib/features/ai/application/ai_usage_service.dart
+new file mode 100644
+index 0000000..e576ccf
+--- /dev/null
++++ b/apps/mobile/lib/features/ai/application/ai_usage_service.dart
+@@ -0,0 +1,66 @@
++import 'package:flutter_riverpod/flutter_riverpod.dart';
++import 'package:mobile/features/premium/application/purchase_provider.dart';
++import 'package:shared_preferences/shared_preferences.dart';
++
++final aiUsageServiceProvider = Provider((ref) => AiUsageService(ref));
++
++class AiUsageService {
++  final Ref _ref;
++  AiUsageService(this._ref);
++
++  bool get isPro => _ref.read(isProProvider);
++
++  Future<({int usageCount, int adRewardCount})> _getStats() async {
++    final prefs = await SharedPreferences.getInstance();
++    final today = DateTime.now().toIso8601String().split('T')[0];
++    final usageKey = 'ai_usage_$today';
++    final rewardKey = 'ai_ad_reward_$today';
++
++    return (
++      usageCount: prefs.getInt(usageKey) ?? 0,
++      adRewardCount: prefs.getInt(rewardKey) ?? 0,
++    );
++  }
++
++  Future<int> getMaxDailyLimit() async {
++    if (isPro) return 3; // Pro limit
++    final stats = await _getStats();
++    // Default 0 + max 1 ad reward (based on user request: 본 0회/일 + 광고 시청 시 1회 추가 (최대 1회/일))
++    // Wait, the user pseudo code said "1 + adRewardCount" but text said 0. Let's make it 0 + adRewardCount (max 1 reward).
++    return stats.adRewardCount;
++  }
++
++  Future<int> getRemainingCount() async {
++    final maxLimit = await getMaxDailyLimit();
++    final stats = await _getStats();
++    return (maxLimit - stats.usageCount).clamp(0, 999);
++  }
++
++  Future<bool> canGenerate() async {
++    final remaining = await getRemainingCount();
++    return remaining > 0;
++  }
++
++  Future<bool> canWatchAd() async {
++    if (isPro) return false;
++    final stats = await _getStats();
++    // Free user logic: Can watch ad if reward count is < 1 (max 1 reward per day)
++    return stats.adRewardCount < 1;
++  }
++
++  Future<void> incrementUsage() async {
++    final prefs = await SharedPreferences.getInstance();
++    final today = DateTime.now().toIso8601String().split('T')[0];
++    final usageKey = 'ai_usage_$today';
++    final count = prefs.getInt(usageKey) ?? 0;
++    await prefs.setInt(usageKey, count + 1);
++  }
++
++  Future<void> addReward() async {
++    final prefs = await SharedPreferences.getInstance();
++    final today = DateTime.now().toIso8601String().split('T')[0];
++    final rewardKey = 'ai_ad_reward_$today';
++    final count = prefs.getInt(rewardKey) ?? 0;
++    await prefs.setInt(rewardKey, count + 1);
++  }
++}
+diff --git a/apps/mobile/lib/features/ai/presentation/ai_compose_screen.dart b/apps/mobile/lib/features/ai/presentation/ai_compose_screen.dart
+index cb0334b..c6d83a3 100644
+--- a/apps/mobile/lib/features/ai/presentation/ai_compose_screen.dart
++++ b/apps/mobile/lib/features/ai/presentation/ai_compose_screen.dart
+@@ -9,9 +9,9 @@ import 'package:mobile/features/ai/application/ai_service.dart';
+ import 'package:mobile/features/shared/data/health_repository.dart';
+ import 'package:mobile/features/shared/data/models/health_info.dart';
+ import 'package:mobile/features/shared/application/weather_service.dart';
+-import 'package:shared_preferences/shared_preferences.dart';
+ import 'package:mobile/features/premium/presentation/paywall_screen.dart';
+ import 'package:mobile/features/premium/application/purchase_provider.dart';
++import 'package:mobile/features/ai/application/ai_usage_service.dart';
+ 
+ class AiComposeScreen extends ConsumerStatefulWidget {
+   final List<SourceItem> initialPhotoItems;
+@@ -88,35 +88,29 @@ class _AiComposeScreenState extends ConsumerState<AiComposeScreen> {
+   }
+ 
+   Future<void> _generateDiary() async {
+-    final isPro = ref.read(isProProvider);
+-    if (!isPro) {
+-      final prefs = await SharedPreferences.getInstance();
+-      final today = DateTime.now().toIso8601String().split('T')[0];
+-      final key = 'ai_usage_$today';
+-      final count = prefs.getInt(key) ?? 0;
+-      
+-      if (count >= 3) {
+-        if (mounted) {
+-           showDialog(
+-             context: context,
+-             builder: (context) => AlertDialog(
+-               title: const Text('일일 사용량 초과'),
+-               content: const Text('무료 버전은 하루 3회까지 AI 일기를 생성할 수 있습니다.\n무제한 생성을 위해 Pro로 업그레이드하세요.'),
+-               actions: [
+-                 TextButton(onPressed: () => Navigator.pop(context), child: const Text('취소')),
+-                 FilledButton(
+-                   onPressed: () {
+-                     Navigator.pop(context);
+-                     Navigator.push(context, MaterialPageRoute(builder: (_) => const PaywallScreen()));
+-                   },
+-                   child: const Text('업그레이드'),
+-                 ),
+-               ],
+-             ),
+-           );
+-        }
+-        return;
++    final aiUsage = ref.read(aiUsageServiceProvider);
++
++    if (!(await aiUsage.canGenerate())) {
++      if (mounted) {
++         showDialog(
++           context: context,
++           builder: (context) => AlertDialog(
++             title: const Text('일일 사용량 초과'),
++             content: const Text('무료 버전은 광고 시청 후 생성이 가능하며, Pro 버전은 하루 3회까지 AI 일기를 생성할 수 있습니다.\n무제한 생성을 위해 Pro로 업그레이드하세요.'),
++             actions: [
++               TextButton(onPressed: () => Navigator.pop(context), child: const Text('취소')),
++               FilledButton(
++                 onPressed: () {
++                   Navigator.pop(context);
++                   Navigator.push(context, MaterialPageRoute(builder: (_) => const PaywallScreen()));
++                 },
++                 child: const Text('업그레이드'),
++               ),
++             ],
++           ),
++         );
+       }
++      return;
+     }
+ 
+     if (_tags.isEmpty && _selectedStyle != 'basic_style') {
+@@ -185,13 +179,7 @@ Health: $healthStr
+       );
+ 
+       // Increment usage count on success
+-      if (!isPro) {
+-        final prefs = await SharedPreferences.getInstance();
+-        final today = DateTime.now().toIso8601String().split('T')[0];
+-        final key = 'ai_usage_$today';
+-        final count = prefs.getInt(key) ?? 0;
+-        await prefs.setInt(key, count + 1);
+-      }
++      await aiUsage.incrementUsage();
+ 
+       if (mounted) {
+         Navigator.pop(context, result);
+diff --git a/apps/mobile/lib/features/ai/presentation/ai_generation_modal.dart b/apps/mobile/lib/features/ai/presentation/ai_generation_modal.dart
+index 2a6d3ba..bf13fa8 100644
+--- a/apps/mobile/lib/features/ai/presentation/ai_generation_modal.dart
++++ b/apps/mobile/lib/features/ai/presentation/ai_generation_modal.dart
+@@ -6,6 +6,7 @@ import 'package:mobile/features/diary/data/models/diary.dart';
+ import 'package:mobile/features/diary/data/models/mood.dart';
+ import 'package:mobile/features/shared/data/models/health_info.dart';
+ import 'package:shared_preferences/shared_preferences.dart';
++import 'package:mobile/features/premium/application/purchase_provider.dart';
+ 
+ // --- Data Class ---
+ 
+@@ -489,11 +490,13 @@ class _AiGenerationInputSheetState extends ConsumerState<AiGenerationInputSheet>
+ 
+ class AiGenerationResultDialog extends ConsumerStatefulWidget {
+   final AiGenerationOptions options;
++  final bool isLastGeneration;
+   final Future<String> Function(AiGenerationOptions options) onGenerate;
+ 
+   const AiGenerationResultDialog({
+     super.key,
+     required this.options,
++    required this.isLastGeneration,
+     required this.onGenerate,
+   });
+ 
+@@ -642,12 +645,42 @@ class _AiGenerationResultDialogState extends ConsumerState<AiGenerationResultDia
+         const SizedBox(height: 20),
+         Row(
+           children: [
+-            Expanded(
+-              child: OutlinedButton(
+-                onPressed: () => Navigator.pop(context, 'retry'), // Retry with same options
+-                child: const Text('다시 생성'),
++            if (!widget.isLastGeneration)
++              Expanded(
++                child: OutlinedButton(
++                  onPressed: () => Navigator.pop(context, 'retry'), // Retry with same options
++                  child: const Text('다시 생성'),
++                ),
++              )
++            else
++              Expanded(
++                child: OutlinedButton(
++                  onPressed: () async {
++                    final confirm = await showDialog<bool>(
++                      context: context,
++                      builder: (context) => AlertDialog(
++                        title: const Text('취소 확인'),
++                        content: const Text('취소하시면 오늘은 더 이상 AI 생성이 불가능합니다.\n정말 취소하시겠습니까?'),
++                        actions: [
++                          TextButton(
++                            onPressed: () => Navigator.pop(context, false), 
++                            child: const Text('돌아가기')
++                          ),
++                          TextButton(
++                            onPressed: () => Navigator.pop(context, true), 
++                            style: TextButton.styleFrom(foregroundColor: Colors.red),
++                            child: const Text('취소하기'),
++                          ),
++                        ],
++                      ),
++                    );
++                    if (confirm == true) {
++                      Navigator.pop(context, null); // completely cancel out of the dialog
++                    }
++                  },
++                  child: const Text('취소'),
++                ),
+               ),
+-            ),
+             const SizedBox(width: 12),
+             Expanded(
+               child: FilledButton(
+diff --git a/apps/mobile/lib/features/diary/presentation/diary_create_screen.dart b/apps/mobile/lib/features/diary/presentation/diary_create_screen.dart
+index 4adfa49..a090eec 100644
+--- a/apps/mobile/lib/features/diary/presentation/diary_create_screen.dart
++++ b/apps/mobile/lib/features/diary/presentation/diary_create_screen.dart
+@@ -19,6 +19,8 @@ import 'package:mobile/features/shared/application/weather_service.dart';
+ import 'package:mobile/core/services/location_service.dart';
+ import 'package:photo_manager/photo_manager.dart';
+ import 'package:url_launcher/url_launcher.dart';
++import 'package:mobile/features/ai/application/ai_usage_service.dart';
++import 'package:mobile/features/shared/application/ad_service.dart';
+ 
+ /// Single-page diary creation screen
+ /// Both Free and Pro: Show all today's photos, allow manual addition
+@@ -54,6 +56,14 @@ class _DiaryCreateScreenState extends ConsumerState<DiaryCreateScreen> {
+     super.initState();
+     _loadSavedTags();
+     _tagController.addListener(_onTagInputChanged);
++    
++    // Preload Rewarded Ad for Free users
++    WidgetsBinding.instance.addPostFrameCallback((_) {
++      if (!ref.read(isProProvider)) {
++        ref.read(adServiceProvider).loadRewardedAd();
++      }
++    });
++
+     if (widget.diary != null) {
+       _initFromDiary(widget.diary!);
+     } else {
+@@ -226,12 +236,32 @@ class _DiaryCreateScreenState extends ConsumerState<DiaryCreateScreen> {
+       _selectedMood != null || 
+       _selectedPhotos.isNotEmpty;
+ 
+-  Future<int> _getAiRemainingCount() async {
+-    final prefs = await SharedPreferences.getInstance();
+-    final today = DateTime.now().toIso8601String().split('T')[0];
+-    final key = 'ai_usage_$today';
+-    final count = prefs.getInt(key) ?? 0;
+-    return 3 - count; // Max 3 per day
++  Future<({int remaining, bool canWatchAd})> _getAiStatus() async {
++    final aiUsage = ref.read(aiUsageServiceProvider);
++    return (
++      remaining: await aiUsage.getRemainingCount(),
++      canWatchAd: await aiUsage.canWatchAd(),
++    );
++  }
++
++  void _watchAdForReward() {
++    // Show loading or just wait for callback
++    setState(() => _isLoading = true);
++    final adService = ref.read(adServiceProvider);
++    
++    adService.showRewardedAd(
++      onReward: () async {
++        final aiUsage = ref.read(aiUsageServiceProvider);
++        await aiUsage.addReward();
++      },
++      onClosed: () {
++        if (mounted) {
++          setState(() {
++            _isLoading = false;
++          });
++        }
++      },
++    );
+   }
+ 
+   Future<void> _startAiGenerationFlow() async {
+@@ -252,6 +282,10 @@ class _DiaryCreateScreenState extends ConsumerState<DiaryCreateScreen> {
+     final weatherAsync = ref.read(currentWeatherProvider);
+     final currentWeatherData = _weather ?? weatherAsync.valueOrNull;
+ 
++    final aiUsage = ref.read(aiUsageServiceProvider);
++    final remainingCount = await aiUsage.getRemainingCount();
++    final isLastGeneration = remainingCount <= 1;
++
+     AiGenerationOptions? processingOptions;
+ 
+     // Loop to handle "Retry" flow
+@@ -281,6 +315,7 @@ class _DiaryCreateScreenState extends ConsumerState<DiaryCreateScreen> {
+         barrierDismissible: false,
+         builder: (context) => AiGenerationResultDialog(
+           options: options,
++          isLastGeneration: isLastGeneration,
+           onGenerate: (opts) => _generateWithAI(
+             opts.selectedPhotos,
+             opts.includeHealth,
+@@ -315,21 +350,10 @@ class _DiaryCreateScreenState extends ConsumerState<DiaryCreateScreen> {
+ 
+ 
+   Future<String> _generateWithAI(List<SourceItem> selectedPhotos, bool includeHealth, String customPrompt, String selectedStyle, bool includeWeather, List<String> selectedTags) async {
+-    final isPro = ref.read(isProProvider);
++    final aiUsage = ref.read(aiUsageServiceProvider);
+     
+-    // Free users cannot use AI at all
+-    if (!isPro) {
+-      throw Exception('Pro 전용 기능입니다. AI 일기 작성은 Pro 사용자만 이용할 수 있습니다.');
+-    }
+-
+-    // Pro users: Check daily limit (3 per day)
+-    final prefs = await SharedPreferences.getInstance();
+-    final today = DateTime.now().toIso8601String().split('T')[0];
+-    final key = 'ai_usage_$today';
+-    final count = prefs.getInt(key) ?? 0;
+-
+-    if (count >= 3) {
+-      throw Exception('일일 사용량 초과: 하루 3회까지 AI 일기를 생성할 수 있습니다.');
++    if (!(await aiUsage.canGenerate())) {
++      throw Exception('일일 사용량 초과: 무료 사용자는 광고 시청 후 추가 이용 가능하며, Pro는 하루 3회 제공됩니다.');
+     }
+ 
+     final health = await ref.read(todayHealthProvider.future);
+@@ -392,7 +416,7 @@ class _DiaryCreateScreenState extends ConsumerState<DiaryCreateScreen> {
+     );
+ 
+     // Increment usage count AFTER successful generation
+-    await prefs.setInt(key, count + 1);
++    await aiUsage.incrementUsage();
+ 
+     return result;
+   }
+@@ -825,25 +849,53 @@ class _DiaryCreateScreenState extends ConsumerState<DiaryCreateScreen> {
+                   const SizedBox(height: 24),
+ 
+                   // 5. AI Button (Pro only with remaining count)
+-                  if (isPro)
+-                    FutureBuilder<int>(
+-                      future: _getAiRemainingCount(),
+-                      builder: (context, snapshot) {
+-                        final remaining = snapshot.data ?? 3;
+-                        final isDisabled = remaining <= 0;
+-                        
+-                        return SizedBox(
+-                          width: double.infinity,
+-                          child: FilledButton.icon(
+-                            onPressed: isDisabled ? null : _startAiGenerationFlow,
+-                            icon: const Icon(Icons.auto_awesome),
+-                            label: Text(remaining > 0 
+-                              ? 'AI로 일기 생성 ($remaining회 남음)' 
+-                              : 'AI 사용량 초과 (자정에 초기화)'),
+-                          ),
+-                        );
+-                      },
+-                    ),
++                  // 5. AI Button (For both Pro and Free)
++                  FutureBuilder<({int remaining, bool canWatchAd})>(
++                    future: _getAiStatus(),
++                    builder: (context, snapshot) {
++                      final status = snapshot.data ?? (remaining: 0, canWatchAd: false);
++                      final remaining = status.remaining;
++                      final canWatchAd = status.canWatchAd;
++                      final isDisabled = remaining <= 0 && !canWatchAd;
++                      
++                      return Column(
++                        children: [
++                          if (remaining > 0)
++                            SizedBox(
++                              width: double.infinity,
++                              child: FilledButton.icon(
++                                onPressed: _startAiGenerationFlow,
++                                icon: const Icon(Icons.auto_awesome),
++                                label: Text('AI로 일기 생성 ($remaining회 남음)'),
++                              ),
++                            ),
++                          
++                          if (remaining <= 0 && canWatchAd)
++                            SizedBox(
++                              width: double.infinity,
++                              child: FilledButton.icon(
++                                onPressed: _watchAdForReward,
++                                icon: const Icon(Icons.play_circle_outline),
++                                label: const Text('광고 보고 AI 일기 1회 생성'),
++                                style: FilledButton.styleFrom(
++                                  backgroundColor: Colors.indigo,
++                                ),
++                              ),
++                            ),
++                          
++                          if (isDisabled)
++                            SizedBox(
++                              width: double.infinity,
++                              child: FilledButton.icon(
++                                onPressed: null,
++                                icon: const Icon(Icons.auto_awesome),
++                                label: const Text('AI 사용량 초과 (자정에 초기화)'),
++                              ),
++                            ),
++                        ],
++                      );
++                    },
++                  ),
+ 
+                   const SizedBox(height: 16),
+ 
+@@ -853,9 +905,9 @@ class _DiaryCreateScreenState extends ConsumerState<DiaryCreateScreen> {
+                   TextField(
+                     controller: _contentController,
+                     maxLines: 8,
+-                    decoration: InputDecoration(
+-                      hintText: isPro ? 'AI가 생성하거나 직접 작성하세요' : '일기를 직접 작성하세요',
+-                      border: const OutlineInputBorder(),
++                    decoration: const InputDecoration(
++                      hintText: 'AI가 생성하거나 직접 작성하세요',
++                      border: OutlineInputBorder(),
+                     ),
+                   ),
+ 
+@@ -872,7 +924,7 @@ class _DiaryCreateScreenState extends ConsumerState<DiaryCreateScreen> {
+                         children: [
+                           Icon(Icons.auto_awesome, size: 18, color: Colors.amber.shade700),
+                           const SizedBox(width: 8),
+-                          Expanded(child: Text('Pro로 업그레이드하면 AI가 일기를 작성해줍니다', style: TextStyle(fontSize: 12, color: Colors.amber.shade900))),
++                          Expanded(child: Text('Pro로 업그레이드하면 하루 3번 자유롭게 생성할 수 있습니다', style: TextStyle(fontSize: 12, color: Colors.amber.shade900))),
+                           TextButton(
+                             onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const PaywallScreen())),
+                             child: const Text('Pro'),
+diff --git a/apps/mobile/lib/features/diary/presentation/diary_detail_screen.dart b/apps/mobile/lib/features/diary/presentation/diary_detail_screen.dart
+index 03eba9e..cc12443 100644
+--- a/apps/mobile/lib/features/diary/presentation/diary_detail_screen.dart
++++ b/apps/mobile/lib/features/diary/presentation/diary_detail_screen.dart
+@@ -12,6 +12,8 @@ import 'package:mobile/features/diary/presentation/widgets/diary_gallery_screen.
+ import 'package:flutter_map/flutter_map.dart';
+ import 'package:latlong2/latlong.dart';
+ import 'package:url_launcher/url_launcher.dart';
++import 'package:mobile/features/premium/application/purchase_provider.dart';
++import 'package:google_mobile_ads/google_mobile_ads.dart';
+ 
+ /// Diary detail screen with edit and delete options
+ class DiaryDetailScreen extends ConsumerStatefulWidget {
+@@ -25,9 +27,42 @@ class DiaryDetailScreen extends ConsumerStatefulWidget {
+ 
+ class _DiaryDetailScreenState extends ConsumerState<DiaryDetailScreen> {
+   bool _tagsExpanded = false;
++  BannerAd? _bannerAd;
++  bool _isBannerAdLoaded = false;
+   
++  @override
++  void initState() {
++    super.initState();
++    WidgetsBinding.instance.addPostFrameCallback((_) {
++      if (!ref.read(isProProvider)) {
++        _loadBannerAd();
++      }
++    });
++  }
++
++  void _loadBannerAd() {
++    _bannerAd = BannerAd(
++      adUnitId: Platform.isAndroid 
++          ? 'ca-app-pub-3940256099942544/6300978111' 
++          : 'ca-app-pub-3940256099942544/2934735716',
++      size: AdSize.banner,
++      request: const AdRequest(),
++      listener: BannerAdListener(
++        onAdLoaded: (_) {
++          if (mounted) setState(() => _isBannerAdLoaded = true);
++        },
++        onAdFailedToLoad: (ad, error) {
++          ad.dispose();
++          _bannerAd = null;
++        },
++      ),
++    );
++    _bannerAd!.load();
++  }
++
+   @override
+   void dispose() {
++    _bannerAd?.dispose();
+     super.dispose();
+   }
+ 
+@@ -183,7 +218,7 @@ class _DiaryDetailScreenState extends ConsumerState<DiaryDetailScreen> {
+                         },
+                       )
+                     else
+-                      const SizedBox(height: 60), // Spacing if no images
++                      SizedBox(height: MediaQuery.of(context).padding.top + 64), // Spacing if no images
+ 
+                     // Menu button overlay
+                     Positioned(
+@@ -558,6 +593,15 @@ class _DiaryDetailScreenState extends ConsumerState<DiaryDetailScreen> {
+           ),
+         ),
+       ),
++      bottomNavigationBar: _isBannerAdLoaded && _bannerAd != null
++          ? SafeArea(
++              child: SizedBox(
++                width: _bannerAd!.size.width.toDouble(),
++                height: _bannerAd!.size.height.toDouble(),
++                child: AdWidget(ad: _bannerAd!),
++              ),
++            )
++          : null,
+       floatingActionButton: FloatingActionButton(
+         onPressed: () {
+           diaryAsync.whenData((diary) {
+diff --git a/apps/mobile/lib/features/diary/presentation/diary_feed_screen.dart b/apps/mobile/lib/features/diary/presentation/diary_feed_screen.dart
+index 25b781a..233d16b 100644
+--- a/apps/mobile/lib/features/diary/presentation/diary_feed_screen.dart
++++ b/apps/mobile/lib/features/diary/presentation/diary_feed_screen.dart
+@@ -9,6 +9,9 @@ import 'package:mobile/features/diary/presentation/widgets/diary_card.dart';
+ import 'package:mobile/features/diary/presentation/widgets/memory_banner.dart';
+ import 'package:mobile/features/diary/presentation/widgets/diary_calendar.dart';
+ import 'package:flutter_slidable/flutter_slidable.dart';
++import 'package:mobile/features/premium/application/purchase_provider.dart';
++import 'package:google_mobile_ads/google_mobile_ads.dart';
++import 'dart:io';
+ 
+ /// Main diary feed screen (SNS-style) with infinite scroll
+ class DiaryFeedScreen extends ConsumerStatefulWidget {
+@@ -22,15 +25,45 @@ class _DiaryFeedScreenState extends ConsumerState<DiaryFeedScreen> {
+   bool _showCalendar = false;
+   String? _selectedTag;
+   final _scrollController = ScrollController();
++  BannerAd? _bannerAd;
++  bool _isBannerAdLoaded = false;
+ 
+   @override
+   void initState() {
+     super.initState();
+     _scrollController.addListener(_onScroll);
++    
++    // Load BannerAd for free users
++    WidgetsBinding.instance.addPostFrameCallback((_) {
++      if (!ref.read(isProProvider)) {
++        _loadBannerAd();
++      }
++    });
++  }
++
++  void _loadBannerAd() {
++    _bannerAd = BannerAd(
++      adUnitId: Platform.isAndroid 
++          ? 'ca-app-pub-3940256099942544/6300978111' 
++          : 'ca-app-pub-3940256099942544/2934735716',
++      size: AdSize.banner,
++      request: const AdRequest(),
++      listener: BannerAdListener(
++        onAdLoaded: (_) {
++          if (mounted) setState(() => _isBannerAdLoaded = true);
++        },
++        onAdFailedToLoad: (ad, error) {
++          ad.dispose();
++          _bannerAd = null;
++        },
++      ),
++    );
++    _bannerAd!.load();
+   }
+ 
+   @override
+   void dispose() {
++    _bannerAd?.dispose();
+     _scrollController.removeListener(_onScroll);
+     _scrollController.dispose();
+     super.dispose();
+@@ -74,6 +107,9 @@ class _DiaryFeedScreenState extends ConsumerState<DiaryFeedScreen> {
+           onRefresh: () => ref.read(infiniteScrollDiaryListProvider.notifier).refresh(),
+           child: CustomScrollView(
+             controller: _scrollController,
++            physics: (scrollState.diaries.isEmpty && !scrollState.isLoadingOlder && !scrollState.isLoadingNewer)
++                ? const NeverScrollableScrollPhysics()
++                : const AlwaysScrollableScrollPhysics(),
+             slivers: [
+               // Header: TODAY + Date
+               SliverToBoxAdapter(
+@@ -347,6 +383,15 @@ class _DiaryFeedScreenState extends ConsumerState<DiaryFeedScreen> {
+           ),
+         ),
+       ),
++      bottomNavigationBar: _isBannerAdLoaded && _bannerAd != null
++          ? SafeArea(
++              child: SizedBox(
++                width: _bannerAd!.size.width.toDouble(),
++                height: _bannerAd!.size.height.toDouble(),
++                child: AdWidget(ad: _bannerAd!),
++              ),
++            )
++          : null,
+       floatingActionButton: Column(
+         mainAxisSize: MainAxisSize.min,
+         children: [
+diff --git a/apps/mobile/lib/features/settings/presentation/notification_settings_screen.dart b/apps/mobile/lib/features/settings/presentation/notification_settings_screen.dart
+index a072128..b785507 100644
+--- a/apps/mobile/lib/features/settings/presentation/notification_settings_screen.dart
++++ b/apps/mobile/lib/features/settings/presentation/notification_settings_screen.dart
+@@ -54,13 +54,10 @@ class _NotificationSettingsScreenState extends ConsumerState<NotificationSetting
+       // Schedule Features
+       if (_isOneYearAgoEnabled) {
+          await service.scheduleMonthlyMemories(_time);
++         
++         // --- 테스트 알림 (설정 완료 후 5초 뒤 전송) ---
++         await service.scheduleTestNotification();
+       } else {
+-         // Cancel only this feature? For now, cancelAll is okay unless we add more features.
+-         // But if we have multiple, we need granular cancel.
+-         // Current implementation of scheduleMonthlyMemories calls cancelAll first.
+-         // So if we have other features, we need to rewrite service.
+-         // For now, if OneYearAgo is OFF, we just don't schedule it. 
+-         // Since it's the only one, we actually cancel all.
+          await service.cancelAll();
+       }
+       
+diff --git a/apps/mobile/lib/features/settings/presentation/settings_screen.dart b/apps/mobile/lib/features/settings/presentation/settings_screen.dart
+index fdf70f3..bbfe6ed 100644
+--- a/apps/mobile/lib/features/settings/presentation/settings_screen.dart
++++ b/apps/mobile/lib/features/settings/presentation/settings_screen.dart
+@@ -17,6 +17,7 @@ import 'package:permission_handler/permission_handler.dart';
+ import 'package:dio/dio.dart';
+ import 'package:flutter_map/flutter_map.dart';
+ import 'package:latlong2/latlong.dart';
++import 'package:google_mobile_ads/google_mobile_ads.dart';
+ 
+ /// Settings screen
+ class SettingsScreen extends ConsumerStatefulWidget {
+@@ -30,14 +31,49 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
+   bool _collectHealth = false;
+   bool _isLockEnabled = false;
+   // Notification settings for preview
+-  bool _isNotificationEnabled = false;
+   bool _isAllNotificationsEnabled = false;
++  bool _isNotificationEnabled = false;
+   String _notificationTime = '';
++  BannerAd? _bannerAd;
++  bool _isBannerAdLoaded = false;
+ 
+   @override
+   void initState() {
+     super.initState();
+     _loadSettings();
++    
++    // Load BannerAd for free users
++    WidgetsBinding.instance.addPostFrameCallback((_) {
++      if (!ref.read(isProProvider)) {
++        _loadBannerAd();
++      }
++    });
++  }
++
++  void _loadBannerAd() {
++    _bannerAd = BannerAd(
++      adUnitId: Platform.isAndroid 
++          ? 'ca-app-pub-3940256099942544/6300978111' 
++          : 'ca-app-pub-3940256099942544/2934735716',
++      size: AdSize.banner,
++      request: const AdRequest(),
++      listener: BannerAdListener(
++        onAdLoaded: (_) {
++          if (mounted) setState(() => _isBannerAdLoaded = true);
++        },
++        onAdFailedToLoad: (ad, error) {
++          ad.dispose();
++          _bannerAd = null;
++        },
++      ),
++    );
++    _bannerAd!.load();
++  }
++
++  @override
++  void dispose() {
++    _bannerAd?.dispose();
++    super.dispose();
+   }
+ 
+   Future<void> _loadSettings() async {
+@@ -82,6 +118,15 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
+       appBar: AppBar(
+         title: const Text('설정'),
+       ),
++      bottomNavigationBar: _isBannerAdLoaded && _bannerAd != null
++          ? SafeArea(
++              child: SizedBox(
++                width: _bannerAd!.size.width.toDouble(),
++                height: _bannerAd!.size.height.toDouble(),
++                child: AdWidget(ad: _bannerAd!),
++              ),
++            )
++          : null,
+       body: ListView(
+         children: [
+           if (!isPro)
+diff --git a/apps/mobile/lib/features/shared/application/ad_service.dart b/apps/mobile/lib/features/shared/application/ad_service.dart
+new file mode 100644
+index 0000000..7aefb86
+--- /dev/null
++++ b/apps/mobile/lib/features/shared/application/ad_service.dart
+@@ -0,0 +1,67 @@
++import 'package:flutter/foundation.dart';
++import 'package:google_mobile_ads/google_mobile_ads.dart';
++import 'package:flutter_riverpod/flutter_riverpod.dart';
++
++final adServiceProvider = Provider((ref) => AdService());
++
++class AdService {
++  RewardedAd? _rewardedAd;
++  bool _isAdLoaded = false;
++
++  void loadRewardedAd() {
++    RewardedAd.load(
++      adUnitId: _getAdUnitId(),
++      request: const AdRequest(),
++      rewardedAdLoadCallback: RewardedAdLoadCallback(
++        onAdLoaded: (ad) {
++          _rewardedAd = ad;
++          _isAdLoaded = true;
++        },
++        onAdFailedToLoad: (error) {
++          debugPrint('RewardedAd failed to load: $error');
++          _isAdLoaded = false;
++        },
++      ),
++    );
++  }
++
++  void showRewardedAd(
++      {required VoidCallback onReward, required VoidCallback onClosed}) {
++    if (!_isAdLoaded || _rewardedAd == null) {
++      debugPrint('Ad not loaded yet');
++      onClosed();
++      return;
++    }
++
++    _rewardedAd!.fullScreenContentCallback = FullScreenContentCallback(
++      onAdDismissedFullScreenContent: (ad) {
++        ad.dispose();
++        _isAdLoaded = false;
++        loadRewardedAd(); // Preload next ad
++        onClosed();
++      },
++      onAdFailedToShowFullScreenContent: (ad, error) {
++        ad.dispose();
++        _isAdLoaded = false;
++        loadRewardedAd();
++        onClosed();
++      },
++    );
++
++    _rewardedAd!.show(
++      onUserEarnedReward: (AdWithoutView ad, RewardItem reward) {
++        onReward();
++      },
++    );
++  }
++
++  String _getAdUnitId() {
++    if (defaultTargetPlatform == TargetPlatform.android) {
++      return 'ca-app-pub-3940256099942544/5224354917'; // Android Test Rewarded Ad ID
++    } else if (defaultTargetPlatform == TargetPlatform.iOS) {
++      return 'ca-app-pub-3940256099942544/1712485313'; // iOS Test Rewarded Ad ID
++    } else {
++      return '';
++    }
++  }
++}
+diff --git a/apps/mobile/lib/main.dart b/apps/mobile/lib/main.dart
+index 99aa28a..666bf3a 100644
+--- a/apps/mobile/lib/main.dart
++++ b/apps/mobile/lib/main.dart
+@@ -15,6 +15,10 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+ import 'package:hive_flutter/hive_flutter.dart';
+ import 'package:shared_preferences/shared_preferences.dart';
+ import 'package:mobile/features/diary/data/models/diary.dart';
++import 'package:google_mobile_ads/google_mobile_ads.dart';
++import 'package:hive_flutter/hive_flutter.dart';
++import 'package:shared_preferences/shared_preferences.dart';
++import 'package:mobile/features/diary/data/models/diary.dart';
+ import 'dart:convert';
+ import 'dart:typed_data';
+ 
+@@ -22,6 +26,9 @@ void main() async {
+   WidgetsBinding widgetsBinding = WidgetsFlutterBinding.ensureInitialized();
+   FlutterNativeSplash.preserve(widgetsBinding: widgetsBinding);
+ 
++  // Initialize AdMob
++  MobileAds.instance.initialize();
++
+   // Initialize Hive
+   await Hive.initFlutter();
+   
+diff --git a/apps/mobile/pubspec.lock b/apps/mobile/pubspec.lock
+index 02ff9ec..c87f662 100644
+--- a/apps/mobile/pubspec.lock
++++ b/apps/mobile/pubspec.lock
+@@ -709,6 +709,14 @@ packages:
+       url: "https://pub.dev"
+     source: hosted
+     version: "14.8.1"
++  google_mobile_ads:
++    dependency: "direct main"
++    description:
++      name: google_mobile_ads
++      sha256: "4775006383a27a5d86d46f8fb452bfcb17794fc0a46c732979e49a8eb1c8963f"
++      url: "https://pub.dev"
++    source: hosted
++    version: "5.2.0"
+   graphs:
+     dependency: transitive
+     description:
+@@ -1722,6 +1730,38 @@ packages:
+       url: "https://pub.dev"
+     source: hosted
+     version: "3.0.3"
++  webview_flutter:
++    dependency: transitive
++    description:
++      name: webview_flutter
++      sha256: "6869c8786d179f929144b4a1f86e09ac0eddfe475984951ea6c634774c16b522"
++      url: "https://pub.dev"
++    source: hosted
++    version: "4.8.0"
++  webview_flutter_android:
++    dependency: transitive
++    description:
++      name: webview_flutter_android
++      sha256: ed021f27ae621bc97a6019fb601ab16331a3db4bf8afa305e9f6689bdb3edced
++      url: "https://pub.dev"
++    source: hosted
++    version: "3.16.8"
++  webview_flutter_platform_interface:
++    dependency: transitive
++    description:
++      name: webview_flutter_platform_interface
++      sha256: "7cb32b21825bd65569665c32bb00a34ded5779786d6201f5350979d2d529940d"
++      url: "https://pub.dev"
++    source: hosted
++    version: "2.13.0"
++  webview_flutter_wkwebview:
++    dependency: transitive
++    description:
++      name: webview_flutter_wkwebview
++      sha256: "9c62cc46fa4f2d41e10ab81014c1de470a6c6f26051a2de32111b2ee55287feb"
++      url: "https://pub.dev"
++    source: hosted
++    version: "3.14.0"
+   win32:
+     dependency: transitive
+     description:
+diff --git a/apps/mobile/pubspec.yaml b/apps/mobile/pubspec.yaml
+index ddbfa24..396c212 100644
+--- a/apps/mobile/pubspec.yaml
++++ b/apps/mobile/pubspec.yaml
+@@ -53,6 +53,7 @@ dependencies:
+   timezone: ^0.9.4
+   flutter_timezone: ^2.0.0
+   flutter_slidable: ^3.1.2
++  google_mobile_ads: ^5.2.0
+ 
+ dev_dependencies:
+   build_runner: ^2.4.9

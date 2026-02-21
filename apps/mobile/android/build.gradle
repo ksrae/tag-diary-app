@@ -4,7 +4,7 @@ allprojects {
         mavenCentral()
     }
     tasks.withType(JavaCompile) {
-        options.compilerArgs << "-Xlint:-options"
+        options.compilerArgs << "-Xlint:-options" << "-Xlint:deprecation"
     }
 }
 

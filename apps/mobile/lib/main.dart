@@ -3,14 +3,16 @@ import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_native_splash/flutter_native_splash.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'package:mobile/firebase_options.dart';
 import 'package:mobile/core/router/router.dart';
 import 'package:mobile/core/theme/app_theme.dart';
 import 'package:mobile/features/lock/application/lock_service.dart';
 import 'package:mobile/features/lock/presentation/lock_screen.dart';
 import 'package:mobile/features/shared/data/health_repository.dart';
 import 'package:mobile/core/services/notification_service.dart';
+import 'package:google_mobile_ads/google_mobile_ads.dart';
 
-import 'package:mobile/features/onboarding/presentation/permission_screen.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -21,6 +23,14 @@ import 'dart:typed_data';
 void main() async {
   WidgetsBinding widgetsBinding = WidgetsFlutterBinding.ensureInitialized();
   FlutterNativeSplash.preserve(widgetsBinding: widgetsBinding);
+
+  // Initialize Firebase
+  await Firebase.initializeApp(
+    options: DefaultFirebaseOptions.currentPlatform,
+  );
+
+  // Initialize AdMob
+  MobileAds.instance.initialize();
 
   // Initialize Hive
   await Hive.initFlutter();
@@ -83,7 +93,6 @@ class MyApp extends ConsumerStatefulWidget {
 class _MyAppState extends ConsumerState<MyApp> {
   bool _isLocked = false;
   bool _isLoading = true;
-  bool _isFirstRun = false;
 
   @override
   void initState() {
@@ -95,18 +104,11 @@ class _MyAppState extends ConsumerState<MyApp> {
     // Remove native splash immediately so Flutter's large logo splash is visible
     FlutterNativeSplash.remove();
 
+    // Mark first run as done (permissions will be requested on-demand)
     final prefs = await SharedPreferences.getInstance();
-    // Default to true if not set
     final isFirstRun = prefs.getBool('is_first_run') ?? true;
-    
     if (isFirstRun) {
-      if (mounted) {
-        setState(() {
-          _isFirstRun = true;
-          _isLoading = false;
-        });
-      }
-      return; // Stop here, don't check lock or init services yet
+      await prefs.setBool('is_first_run', false);
     }
     
     // 1. Check lock settings
@@ -118,9 +120,7 @@ class _MyAppState extends ConsumerState<MyApp> {
       if (mounted) setState(() => _isLocked = true);
     }
 
-    // 2. Initialize Health (only requests permission once)
-    // Only do this if NOT first run, because PermissionScreen will handle requests
-    // Location is loaded from SharedPreferences on-demand, no init needed.
+    // 2. Initialize Health & Notification (only requests permission once)
     await _initHealth();
     
     if (mounted) setState(() => _isLoading = false);
@@ -158,30 +158,6 @@ class _MyAppState extends ConsumerState<MyApp> {
       );
     }
     
-    if (_isFirstRun) {
-      return MaterialApp(
-        title: 'AI 일기 (권한 설정)',
-        theme: AppTheme.light,
-        themeMode: ThemeMode.light,
-        home: PermissionScreen(
-          onDone: () {
-            setState(() {
-              _isFirstRun = false;
-              _isLoading = true; // Show splash briefly while checking lock/init
-            });
-            _checkLock(); // Re-run check to init services and check lock
-          },
-        ),
-        localizationsDelegates: const [
-          GlobalMaterialLocalizations.delegate,
-          GlobalWidgetsLocalizations.delegate,
-          GlobalCupertinoLocalizations.delegate,
-        ],
-        supportedLocales: const [Locale('ko'), Locale('en')],
-        localeResolutionCallback: _localeResolutionCallback,
-      );
-    }
-
     if (_isLocked) {
       return MaterialApp(
         title: 'AI 일기 (잠금)',

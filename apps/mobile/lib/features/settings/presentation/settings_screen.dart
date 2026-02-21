@@ -17,6 +17,7 @@ import 'package:permission_handler/permission_handler.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
+import 'package:google_mobile_ads/google_mobile_ads.dart';
 
 /// Settings screen
 class SettingsScreen extends ConsumerStatefulWidget {
@@ -33,11 +34,46 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   bool _isNotificationEnabled = false;
   bool _isAllNotificationsEnabled = false;
   String _notificationTime = '';
+  BannerAd? _bannerAd;
+  bool _isBannerAdLoaded = false;
 
   @override
   void initState() {
     super.initState();
     _loadSettings();
+    
+    // Load BannerAd for free users
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!ref.read(isProProvider)) {
+        _loadBannerAd();
+      }
+    });
+  }
+
+  void _loadBannerAd() {
+    _bannerAd = BannerAd(
+      adUnitId: Platform.isAndroid 
+          ? 'ca-app-pub-3940256099942544/6300978111' 
+          : 'ca-app-pub-3940256099942544/2934735716',
+      size: AdSize.banner,
+      request: const AdRequest(),
+      listener: BannerAdListener(
+        onAdLoaded: (_) {
+          if (mounted) setState(() => _isBannerAdLoaded = true);
+        },
+        onAdFailedToLoad: (ad, error) {
+          ad.dispose();
+          _bannerAd = null;
+        },
+      ),
+    );
+    _bannerAd!.load();
+  }
+
+  @override
+  void dispose() {
+    _bannerAd?.dispose();
+    super.dispose();
   }
 
   Future<void> _loadSettings() async {
@@ -82,6 +118,15 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       appBar: AppBar(
         title: const Text('설정'),
       ),
+      bottomNavigationBar: _isBannerAdLoaded && _bannerAd != null
+          ? SafeArea(
+              child: SizedBox(
+                width: _bannerAd!.size.width.toDouble(),
+                height: _bannerAd!.size.height.toDouble(),
+                child: AdWidget(ad: _bannerAd!),
+              ),
+            )
+          : null,
       body: ListView(
         children: [
           if (!isPro)
@@ -746,6 +791,8 @@ class _LocationSettingSheetState extends ConsumerState<_LocationSettingSheet> {
               ),
             ),
           ),
+
+          // Notification section
           const SizedBox(height: 6),
           const Divider(height: 1),
 

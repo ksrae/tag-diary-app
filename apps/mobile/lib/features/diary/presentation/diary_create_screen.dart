@@ -10,7 +10,8 @@ import 'package:mobile/features/diary/data/models/mood.dart';
 import 'package:mobile/features/diary/data/models/source_item.dart';
 import 'package:mobile/features/diary/presentation/diary_error_screen.dart';
 import 'package:mobile/features/ai/presentation/ai_generation_modal.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+import 'package:mobile/features/ai/application/ai_usage_service.dart';
+import 'package:mobile/features/shared/application/ad_service.dart';
 import 'package:mobile/features/premium/presentation/paywall_screen.dart';
 import 'package:mobile/features/premium/application/purchase_provider.dart';
 import 'package:mobile/features/ai/application/ai_service.dart';
@@ -59,6 +60,13 @@ class _DiaryCreateScreenState extends ConsumerState<DiaryCreateScreen> {
     } else {
       _collectTodayPhotos();
     }
+    
+    // Load rewarded ad for free users
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!ref.read(isProProvider)) {
+        ref.read(adServiceProvider).loadRewardedAd();
+      }
+    });
   }
 
   Future<void> _loadSavedTags() async {
@@ -226,12 +234,41 @@ class _DiaryCreateScreenState extends ConsumerState<DiaryCreateScreen> {
       _selectedMood != null || 
       _selectedPhotos.isNotEmpty;
 
-  Future<int> _getAiRemainingCount() async {
-    final prefs = await SharedPreferences.getInstance();
-    final today = DateTime.now().toIso8601String().split('T')[0];
-    final key = 'ai_usage_$today';
-    final count = prefs.getInt(key) ?? 0;
-    return 3 - count; // Max 3 per day
+  Future<({int remaining, bool canWatchAd})> _getAiStatus() async {
+    final aiUsage = ref.read(aiUsageServiceProvider);
+    return (
+      remaining: await aiUsage.getRemainingCount(),
+      canWatchAd: await aiUsage.canWatchAd(),
+    );
+  }
+
+  void _watchAdForReward() {
+    setState(() => _isLoading = true);
+    final adService = ref.read(adServiceProvider);
+    
+    adService.showRewardedAd(
+      onReward: () async {
+        final aiUsage = ref.read(aiUsageServiceProvider);
+        await aiUsage.addReward();
+        if (mounted) setState(() {});
+      },
+      onClosed: () {
+        if (mounted) {
+          setState(() {
+            _isLoading = false;
+          });
+        }
+      },
+      onFailedToLoad: () {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('광고를 불러오는 중입니다. 잠시 후 다시 시도해주세요.')),
+          );
+          // Try to load it again proactively
+          adService.loadRewardedAd();
+        }
+      },
+    );
   }
 
   Future<void> _startAiGenerationFlow() async {
@@ -251,6 +288,10 @@ class _DiaryCreateScreenState extends ConsumerState<DiaryCreateScreen> {
     
     final weatherAsync = ref.read(currentWeatherProvider);
     final currentWeatherData = _weather ?? weatherAsync.valueOrNull;
+
+    final aiUsage = ref.read(aiUsageServiceProvider);
+    final remainingCount = await aiUsage.getRemainingCount();
+    final isLastGeneration = remainingCount <= 1;
 
     AiGenerationOptions? processingOptions;
 
@@ -281,6 +322,7 @@ class _DiaryCreateScreenState extends ConsumerState<DiaryCreateScreen> {
         barrierDismissible: false,
         builder: (context) => AiGenerationResultDialog(
           options: options,
+          isLastGeneration: isLastGeneration,
           onGenerate: (opts) => _generateWithAI(
             opts.selectedPhotos,
             opts.includeHealth,
@@ -315,21 +357,10 @@ class _DiaryCreateScreenState extends ConsumerState<DiaryCreateScreen> {
 
 
   Future<String> _generateWithAI(List<SourceItem> selectedPhotos, bool includeHealth, String customPrompt, String selectedStyle, bool includeWeather, List<String> selectedTags) async {
-    final isPro = ref.read(isProProvider);
+    final aiUsage = ref.read(aiUsageServiceProvider);
     
-    // Free users cannot use AI at all
-    if (!isPro) {
-      throw Exception('Pro 전용 기능입니다. AI 일기 작성은 Pro 사용자만 이용할 수 있습니다.');
-    }
-
-    // Pro users: Check daily limit (3 per day)
-    final prefs = await SharedPreferences.getInstance();
-    final today = DateTime.now().toIso8601String().split('T')[0];
-    final key = 'ai_usage_$today';
-    final count = prefs.getInt(key) ?? 0;
-
-    if (count >= 3) {
-      throw Exception('일일 사용량 초과: 하루 3회까지 AI 일기를 생성할 수 있습니다.');
+    if (!(await aiUsage.canGenerate())) {
+      throw Exception('일일 사용량 초과: 무료 사용자는 광고 시청 후 추가 이용 가능하며, Pro는 하루 3회 제공됩니다.');
     }
 
     final health = await ref.read(todayHealthProvider.future);
@@ -392,7 +423,7 @@ class _DiaryCreateScreenState extends ConsumerState<DiaryCreateScreen> {
     );
 
     // Increment usage count AFTER successful generation
-    await prefs.setInt(key, count + 1);
+    await aiUsage.incrementUsage();
 
     return result;
   }
@@ -824,26 +855,53 @@ class _DiaryCreateScreenState extends ConsumerState<DiaryCreateScreen> {
 
                   const SizedBox(height: 24),
 
-                  // 5. AI Button (Pro only with remaining count)
-                  if (isPro)
-                    FutureBuilder<int>(
-                      future: _getAiRemainingCount(),
-                      builder: (context, snapshot) {
-                        final remaining = snapshot.data ?? 3;
-                        final isDisabled = remaining <= 0;
-                        
-                        return SizedBox(
-                          width: double.infinity,
-                          child: FilledButton.icon(
-                            onPressed: isDisabled ? null : _startAiGenerationFlow,
-                            icon: const Icon(Icons.auto_awesome),
-                            label: Text(remaining > 0 
-                              ? 'AI로 일기 생성 ($remaining회 남음)' 
-                              : 'AI 사용량 초과 (자정에 초기화)'),
-                          ),
-                        );
-                      },
-                    ),
+                  // 5. AI Button (Pro & Free with remaining count / ad functionality)
+                  FutureBuilder<({int remaining, bool canWatchAd})>(
+                    future: _getAiStatus(),
+                    builder: (context, snapshot) {
+                      final status = snapshot.data ?? (remaining: 0, canWatchAd: false);
+                      final remaining = status.remaining;
+                      final canWatchAd = status.canWatchAd;
+                      final isDisabled = remaining <= 0 && !canWatchAd;
+                      
+                      return Column(
+                        children: [
+                          if (remaining > 0)
+                            SizedBox(
+                              width: double.infinity,
+                              child: FilledButton.icon(
+                                onPressed: _startAiGenerationFlow,
+                                icon: const Icon(Icons.auto_awesome),
+                                label: Text('AI로 일기 생성 ($remaining회 남음)'),
+                              ),
+                            ),
+                          
+                          if (remaining <= 0 && canWatchAd)
+                            SizedBox(
+                              width: double.infinity,
+                              child: FilledButton.icon(
+                                onPressed: _watchAdForReward,
+                                icon: const Icon(Icons.play_circle_outline),
+                                label: const Text('광고 보고 AI 일기 1회 생성'),
+                                style: FilledButton.styleFrom(
+                                  backgroundColor: Colors.indigo,
+                                ),
+                              ),
+                            ),
+                          
+                          if (isDisabled)
+                            SizedBox(
+                              width: double.infinity,
+                              child: FilledButton.icon(
+                                onPressed: null,
+                                icon: const Icon(Icons.auto_awesome),
+                                label: const Text('AI 사용량 초과 (자정에 초기화)'),
+                              ),
+                            ),
+                        ],
+                      );
+                    },
+                  ),
 
                   const SizedBox(height: 16),
 
@@ -853,9 +911,9 @@ class _DiaryCreateScreenState extends ConsumerState<DiaryCreateScreen> {
                   TextField(
                     controller: _contentController,
                     maxLines: 8,
-                    decoration: InputDecoration(
-                      hintText: isPro ? 'AI가 생성하거나 직접 작성하세요' : '일기를 직접 작성하세요',
-                      border: const OutlineInputBorder(),
+                    decoration: const InputDecoration(
+                      hintText: 'AI가 생성하거나 직접 작성하세요',
+                      border: OutlineInputBorder(),
                     ),
                   ),
 
@@ -872,7 +930,7 @@ class _DiaryCreateScreenState extends ConsumerState<DiaryCreateScreen> {
                         children: [
                           Icon(Icons.auto_awesome, size: 18, color: Colors.amber.shade700),
                           const SizedBox(width: 8),
-                          Expanded(child: Text('Pro로 업그레이드하면 AI가 일기를 작성해줍니다', style: TextStyle(fontSize: 12, color: Colors.amber.shade900))),
+                          Expanded(child: Text('Pro로 업그레이드하면 하루 3번 자유롭게 생성할 수 있습니다', style: TextStyle(fontSize: 12, color: Colors.amber.shade900))),
                           TextButton(
                             onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const PaywallScreen())),
                             child: const Text('Pro'),
