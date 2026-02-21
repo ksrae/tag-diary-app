@@ -72,6 +72,11 @@ venv/
 htmlcov/
 .coverage
 
+# Firebase / Google Services (contain API keys - NEVER commit)
+**/GoogleService-Info.plist
+**/google-services.json
+**/firebase_options.dart
+
 # Flutter
 .flutter-plugins
 .flutter-plugins-dependencies
