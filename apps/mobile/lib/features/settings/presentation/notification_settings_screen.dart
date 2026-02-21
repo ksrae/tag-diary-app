@@ -58,12 +58,6 @@ class _NotificationSettingsScreenState extends ConsumerState<NotificationSetting
          // --- 테스트 알림 (설정 완료 후 5초 뒤 전송) ---
          await service.scheduleTestNotification();
       } else {
-         // Cancel only this feature? For now, cancelAll is okay unless we add more features.
-         // But if we have multiple, we need granular cancel.
-         // Current implementation of scheduleMonthlyMemories calls cancelAll first.
-         // So if we have other features, we need to rewrite service.
-         // For now, if OneYearAgo is OFF, we just don't schedule it. 
-         // Since it's the only one, we actually cancel all.
          await service.cancelAll();
       }
       

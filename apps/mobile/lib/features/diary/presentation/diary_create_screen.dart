@@ -20,6 +20,8 @@ import 'package:mobile/features/shared/application/weather_service.dart';
 import 'package:mobile/core/services/location_service.dart';
 import 'package:photo_manager/photo_manager.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:mobile/features/ai/application/ai_usage_service.dart';
+import 'package:mobile/features/shared/application/ad_service.dart';
 
 /// Single-page diary creation screen
 /// Both Free and Pro: Show all today's photos, allow manual addition
@@ -55,6 +57,14 @@ class _DiaryCreateScreenState extends ConsumerState<DiaryCreateScreen> {
     super.initState();
     _loadSavedTags();
     _tagController.addListener(_onTagInputChanged);
+    
+    // Preload Rewarded Ad for Free users
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!ref.read(isProProvider)) {
+        ref.read(adServiceProvider).loadRewardedAd();
+      }
+    });
+
     if (widget.diary != null) {
       _initFromDiary(widget.diary!);
     } else {

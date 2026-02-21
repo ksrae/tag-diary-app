@@ -14,9 +14,8 @@ import 'package:mobile/core/services/notification_service.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
-import 'package:hive_flutter/hive_flutter.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:mobile/features/diary/data/models/diary.dart';
+import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'dart:convert';
 import 'dart:typed_data';
 
@@ -28,7 +27,6 @@ void main() async {
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
-
   // Initialize AdMob
   MobileAds.instance.initialize();
 

@@ -31,8 +31,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   bool _collectHealth = false;
   bool _isLockEnabled = false;
   // Notification settings for preview
-  bool _isNotificationEnabled = false;
   bool _isAllNotificationsEnabled = false;
+  bool _isNotificationEnabled = false;
   String _notificationTime = '';
   BannerAd? _bannerAd;
   bool _isBannerAdLoaded = false;

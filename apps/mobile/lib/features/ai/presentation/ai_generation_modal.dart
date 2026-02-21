@@ -6,6 +6,7 @@ import 'package:mobile/features/diary/data/models/diary.dart';
 import 'package:mobile/features/diary/data/models/mood.dart';
 import 'package:mobile/features/shared/data/models/health_info.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:mobile/features/premium/application/purchase_provider.dart';
 
 // --- Data Class ---
 
